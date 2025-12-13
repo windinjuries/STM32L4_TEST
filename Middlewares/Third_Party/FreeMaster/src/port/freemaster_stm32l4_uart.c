@@ -258,7 +258,7 @@ static void _FMSTR_S32_PutChar(FMSTR_BCHR  ch)
 static FMSTR_BCHR _FMSTR_S32_GetChar(void)
 {
     FMSTR_BCHR c = 0;
-    huart1.Instance->RDR = (uint8_t)c;
+    c = huart1.Instance->RDR;
     return c;
 }
 
