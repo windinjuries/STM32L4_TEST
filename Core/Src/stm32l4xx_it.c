@@ -20,7 +20,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32l4xx_it.h"
-#include "freemaster.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -183,9 +182,10 @@ void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
 
-  /* USER CODE END USART1_IRQn 0 */
   	extern void FMSTR_SerialIsr();
     FMSTR_SerialIsr();
+  /* USER CODE END USART1_IRQn 0 */
+  HAL_UART_IRQHandler(&huart1);
   /* USER CODE BEGIN USART1_IRQn 1 */
 
   /* USER CODE END USART1_IRQn 1 */

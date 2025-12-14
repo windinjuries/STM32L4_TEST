@@ -395,6 +395,11 @@
           <GroupName>Application/User/Core</GroupName>
           <Files>
             <File>
+              <FileName>dc_control.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\dc_control.c</FilePath>
+            </File>
+            <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/main.c</FilePath>
