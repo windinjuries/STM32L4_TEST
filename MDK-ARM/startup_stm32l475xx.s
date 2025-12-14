@@ -28,6 +28,7 @@
 ;   <o> Stack Size (in Bytes) <0x0-0xFFFFFFFF:8>
 ; </h>
 
+; STACK SZIE 4KB (LVGL)
 Stack_Size		EQU     0x400
 
                 AREA    STACK, NOINIT, READWRITE, ALIGN=3
