@@ -10,7 +10,7 @@
       <TargetName>TEST</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>5060750::V5.06 update 6 (build 750)::.\ARMCC</pCCUsed>
+      <pCCUsed>5060960::V5.06 update 7 (build 960)::.\ARMCC</pCCUsed>
       <uAC6>0</uAC6>
       <TargetOption>
         <TargetCommonOption>
@@ -138,7 +138,7 @@
           </Flash1>
           <bUseTDR>1</bUseTDR>
           <Flash2>BIN\UL2V8M.DLL</Flash2>
-          <Flash3></Flash3>
+          <Flash3>"" ()</Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
           <pFcarmGrp></pFcarmGrp>
@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32L475xx LV_CONF_INCLUDE_SIMPLE LV_LVGL_H_INCLUDE_SIMPLE,STM32L475xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32L4xx_HAL_Driver/Inc;../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32L4xx/Include;../Drivers/CMSIS/Include;../USB_DEVICE/App;../USB_DEVICE/Target;../Middlewares/ST/STM32_USB_Device_Library/Core/Inc;../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../Middlewares/Third_Party/FreeMaster/src/common;../Middlewares/Third_Party/FreeMaster/src/port;../Middlewares/Third_Party/LVGL/port;../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src;../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/themes/default</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32L4xx_HAL_Driver/Inc;../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32L4xx/Include;../Drivers/CMSIS/Include;../USB_DEVICE/App;../USB_DEVICE/Target;../Middlewares/ST/STM32_USB_Device_Library/Core/Inc;../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../Middlewares/Third_Party/FreeMaster/src/common;../Middlewares/Third_Party/FreeMaster/src/port;../Middlewares/Third_Party/LVGL/port;../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src;../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/themes/default;../Middlewares/Third_Party/LVGL/app</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -3595,6 +3595,11 @@
               <FileType>1</FileType>
               <FilePath>..\Middlewares\Third_Party\LVGL\port\lv_port_disp.c</FilePath>
             </File>
+            <File>
+              <FileName>drv_lcd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Middlewares\Third_Party\LVGL\port\drv_lcd.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -3668,6 +3673,23 @@
               </Aads>
             </GroupArmAds>
           </GroupOption>
+          <Files>
+            <File>
+              <FileName>lv_demo_stress.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Middlewares\Third_Party\LVGL\app\lv_demo_stress.c</FilePath>
+            </File>
+            <File>
+              <FileName>lv_gui.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Middlewares\Third_Party\LVGL\app\lv_gui.c</FilePath>
+            </File>
+            <File>
+              <FileName>lv_app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Middlewares\Third_Party\LVGL\app\lv_app.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>::CMSIS</GroupName>

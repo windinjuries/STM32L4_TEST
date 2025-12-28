@@ -1,27 +1,41 @@
 #include <stdint.h>
 #include "main.h"
 #include "cmsis_os.h"
-#include "drv_led.h"
+#include "drv_lcd.h"
 
 extern SPI_HandleTypeDef hspi3;
+extern TIM_HandleTypeDef htim3;
 
-#define LCD_
+/* Reset */
+#define LCD_RESET_LOW()   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+#define LCD_RESET_HIGH()  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_SET);
+
+/* Command / Data */
+#define LCD_DC_LOW()     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_RESET);
+#define LCD_DC_HIGH()    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
+
+#define LCD_CS_LOW()     HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_RESET);
+#define LCD_CS_HIGH()    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_SET);
 
 static int spi_transmit(uint8_t *data, uint16_t size)
 {   
+    LCD_CS_LOW();
     if (HAL_SPI_Transmit(&hspi3, data, size, HAL_MAX_DELAY) != HAL_OK)
     {
         return -1;
     }
+    LCD_CS_HIGH();
     return size;
 }
 
 static int spi_receive(uint8_t *data, uint16_t size)
 {   
+    LCD_CS_LOW();
     if (HAL_SPI_Receive(&hspi3, data, size, HAL_MAX_DELAY) != HAL_OK)
     {
         return -1;
     }
+    LCD_CS_HIGH();
     return size;
 }
 
@@ -29,7 +43,7 @@ static int lcd_write_cmd(const uint8_t cmd)
 {
     uint32_t len;
 
-    HAL_GPIO_ResetPin(GPIOB, GPIO_PIN_4);
+    LCD_DC_LOW();
     len = spi_transmit((uint8_t *)&cmd, 1);
     if (len != 1)
     {
@@ -44,7 +58,7 @@ static int lcd_write_cmd(const uint8_t cmd)
 static int lcd_write_data(const uint8_t data)
 {
     uint32_t len;
-    HAL_GPIO_ResetPin(GPIOB, GPIO_PIN_4);
+    LCD_DC_HIGH();
     len = spi_transmit((uint8_t *)&data, 1);
     if (len != 1)
     {
@@ -64,7 +78,7 @@ static int lcd_write_half_word(const uint16_t da)
     data[0] = da >> 8;
     data[1] = da;
 
-    HAL_GPIO_ResetPin(GPIOB, GPIO_PIN_4);
+    LCD_DC_HIGH();
     len = spi_transmit((uint8_t *)&data, 2);
     if (len != 2)
     {
@@ -78,16 +92,19 @@ static int lcd_write_half_word(const uint16_t da)
 
 static void lcd_gpio_init(void)
 {
-
-    HAL_GPIO_ResetPin(GPIOB, GPIO_PIN_6);
-    osDelay(100); /* wait at least 100ms for reset */
-    HAL_GPIO_SetPin(GPIOB, GPIO_PIN_6);
+    LCD_RESET_LOW();
+    /* wait at least 100ms for reset */
+    osDelay(100); 
+    LCD_RESET_HIGH();
 }
 
-static int hw_lcd_init(void)
+int lcd_init(void)
 {
     /* lcd reset */
     lcd_gpio_init();
+
+    /* timer start */
+    HAL_TIM_Base_Start_IT(&htim3);
 
     /* Memory Data Access Control */
     lcd_write_cmd(0x36);
@@ -164,56 +181,11 @@ static int hw_lcd_init(void)
     /* Sleep Out */
     lcd_write_cmd(0x11);
     /* wait for power stability */
-    rt_thread_mdelay(100);
+     osDelay(100); 
 
-    /* display on */
-    lcd_display_on();
     lcd_write_cmd(0x29);
 
     return 0;
-}
-
-void lcd_display_brightness(uint8_t percent)
-{
-    struct rt_device_pwm *pwm_dev;
-
-    if(percent > 100)
-    {
-        percent = 100;
-    }
-
-    pwm_dev = (struct rt_device_pwm*)rt_device_find("pwm4");
-    if(pwm_dev != RT_NULL)
-    {
-        rt_pwm_set(pwm_dev, 2, 1000000, percent*10000); /* PB7, PWM4 CH2 with 1000Hz */
-        rt_pwm_enable(pwm_dev, 2);
-    }
-}
-
-void lcd_display_on(void)
-{
-    lcd_display_brightness(100);
-}
-
-void lcd_display_off(void)
-{
-    lcd_display_brightness(0);
-}
-
-/* lcd enter the minimum power consumption mode and backlight off. */
-void lcd_enter_sleep(void)
-{
-    lcd_display_off();
-    rt_thread_mdelay(5);
-    lcd_write_cmd(0x10);
-}
-/* lcd turn off sleep mode and backlight on. */
-void lcd_exit_sleep(void)
-{
-    lcd_display_on();
-    rt_thread_mdelay(5);
-    lcd_write_cmd(0x11);
-    rt_thread_mdelay(120);
 }
 
 /**
@@ -261,6 +233,6 @@ void lcd_fill_array(uint16_t x_start, uint16_t y_start, uint16_t x_end, uint16_t
 
     size = (x_end - x_start + 1) * (y_end - y_start + 1) * 2/*16bit*/;
     lcd_address_set(x_start, y_start, x_end, y_end);
-    rt_pin_write(LCD_DC_PIN, PIN_HIGH);
-    rt_spi_send(spi_dev_lcd, pcolor, size);
+    LCD_DC_HIGH();
+    spi_transmit(pcolor, size);
 }
