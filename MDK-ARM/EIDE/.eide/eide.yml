@@ -1,0 +1,450 @@
+version: "4.1"
+name: TEST
+type: ARM
+deviceName: null
+packDir: null
+srcDirs: []
+virtualFolder:
+  name: <virtual_root>
+  files: []
+  folders:
+    - name: Application
+      files: []
+      folders:
+        - name: MDK-ARM
+          files:
+            - path: ../startup_stm32l475xx.s
+          folders: []
+        - name: User
+          files: []
+          folders:
+            - name: Core
+              files:
+                - path: ../../Core/Src/dc_control.c
+                - path: ../../Core/Src/esp8266_wifi.c
+                - path: ../../Core/Src/main.c
+                - path: ../../Core/Src/freertos.c
+                - path: ../../Core/Src/stm32l4xx_it.c
+                - path: ../../Core/Src/stm32l4xx_hal_msp.c
+                - path: ../../Core/Src/stm32l4xx_hal_timebase_tim.c
+              folders: []
+            - name: USB_DEVICE
+              files: []
+              folders:
+                - name: App
+                  files:
+                    - path: ../../USB_DEVICE/App/usb_device.c
+                    - path: ../../USB_DEVICE/App/usbd_desc.c
+                    - path: ../../USB_DEVICE/App/usbd_cdc_if.c
+                  folders: []
+                - name: Target
+                  files:
+                    - path: ../../USB_DEVICE/Target/usbd_conf.c
+                  folders: []
+    - name: Drivers
+      files: []
+      folders:
+        - name: STM32L4xx_HAL_Driver
+          files:
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pcd.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pcd_ex.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_ll_usb.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_i2c_ex.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rcc_ex.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_flash.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_flash_ex.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_flash_ramfunc.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_gpio.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_dma_ex.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_pwr_ex.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_cortex.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_exti.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rtc.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_rtc_ex.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_spi.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_spi_ex.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_tim_ex.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart.c
+            - path: ../../Drivers/STM32L4xx_HAL_Driver/Src/stm32l4xx_hal_uart_ex.c
+          folders: []
+        - name: CMSIS
+          files:
+            - path: ../../Core/Src/system_stm32l4xx.c
+          folders: []
+    - name: Middlewares
+      files: []
+      folders:
+        - name: USB_Device_Library
+          files:
+            - path: ../../Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c
+            - path: ../../Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c
+            - path: ../../Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
+            - path: ../../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
+          folders: []
+        - name: FreeRTOS
+          files:
+            - path: ../../Middlewares/Third_Party/FreeRTOS/Source/croutine.c
+            - path: ../../Middlewares/Third_Party/FreeRTOS/Source/event_groups.c
+            - path: ../../Middlewares/Third_Party/FreeRTOS/Source/list.c
+            - path: ../../Middlewares/Third_Party/FreeRTOS/Source/queue.c
+            - path: ../../Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.c
+            - path: ../../Middlewares/Third_Party/FreeRTOS/Source/tasks.c
+            - path: ../../Middlewares/Third_Party/FreeRTOS/Source/timers.c
+            - path: ../../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.c
+            - path: ../../Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c
+            - path: ../../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F/port.c
+          folders: []
+        - name: FreeMaster
+          files:
+            - path: ../../Middlewares/Third_Party/FreeMaster/src/common/freemaster_appcmd.c
+            - path: ../../Middlewares/Third_Party/FreeMaster/src/common/freemaster_can.c
+            - path: ../../Middlewares/Third_Party/FreeMaster/src/common/freemaster_pdbdm.c
+            - path: ../../Middlewares/Third_Party/FreeMaster/src/common/freemaster_pipes.c
+            - path: ../../Middlewares/Third_Party/FreeMaster/src/common/freemaster_protocol.c
+            - path: ../../Middlewares/Third_Party/FreeMaster/src/common/freemaster_rec.c
+            - path: ../../Middlewares/Third_Party/FreeMaster/src/common/freemaster_scope.c
+            - path: ../../Middlewares/Third_Party/FreeMaster/src/common/freemaster_serial.c
+            - path: ../../Middlewares/Third_Party/FreeMaster/src/common/freemaster_sha.c
+            - path: ../../Middlewares/Third_Party/FreeMaster/src/common/freemaster_tsa.c
+            - path: ../../Middlewares/Third_Party/FreeMaster/src/common/freemaster_ures.c
+            - path: ../../Middlewares/Third_Party/FreeMaster/src/common/freemaster_utils.c
+            - path: ../../Middlewares/Third_Party/FreeMaster/src/port/freemaster_stm32l4_uart.c
+          folders: []
+    - name: Middleware
+      files: []
+      folders:
+        - name: LVGL_core
+          files:
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_disp.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_event.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_group.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_indev.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_indev_scroll.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_obj.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_obj_class.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_obj_draw.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_obj_pos.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_obj_scroll.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_obj_style.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_obj_style_gen.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_obj_tree.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_refr.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/lv_theme.c
+          folders: []
+        - name: LVGL_draw
+          files:
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/lv_draw.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/lv_draw_arc.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/lv_draw_img.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/lv_draw_label.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/lv_draw_layer.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/lv_draw_line.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/lv_draw_mask.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/lv_draw_rect.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/lv_draw_transform.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/lv_draw_triangle.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/lv_img_buf.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/lv_img_cache.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/lv_img_decoder.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/stm32_dma2d/lv_gpu_stm32_dma2d.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/sw/lv_draw_sw.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/sw/lv_draw_sw_arc.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/sw/lv_draw_sw_blend.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/sw/lv_draw_sw_dither.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/sw/lv_draw_sw_gradient.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/sw/lv_draw_sw_img.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/sw/lv_draw_sw_layer.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/sw/lv_draw_sw_letter.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/sw/lv_draw_sw_line.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/sw/lv_draw_sw_polygon.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/sw/lv_draw_sw_rect.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw/sw/lv_draw_sw_transform.c
+          folders: []
+        - name: LVGL_extra
+          files:
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/lv_extra.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/layouts/flex/lv_flex.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/layouts/grid/lv_grid.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/themes/default/lv_theme_default.c
+          folders: []
+        - name: LVGL_font
+          files:
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_unscii_16.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_unscii_8.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_simsun_16_cjk.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_48.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_46.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_44.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_42.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_40.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_38.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_36.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_34.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_32.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_30.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_28_compressed.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_28.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_26.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_24.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_22.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_20.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_18.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_16.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_14.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_12_subpx.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_12.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_10.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_montserrat_8.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_loader.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_fmt_txt.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font_dejavu_16_persian_hebrew.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/lv_font.c
+          folders: []
+        - name: LVGL_hal
+          files:
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/hal/lv_hal_disp.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/hal/lv_hal_indev.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/hal/lv_hal_tick.c
+          folders: []
+        - name: LVGL_misc
+          files:
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_anim.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_anim_timeline.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_area.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_async.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_bidi.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_color.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_fs.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_gc.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_ll.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_log.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_lru.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_math.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_mem.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_printf.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_style.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_style_gen.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_templ.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_timer.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_tlsf.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_txt.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_txt_ap.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc/lv_utils.c
+          folders: []
+        - name: LVGL_widgets
+          files:
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_arc.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_bar.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_btn.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_btnmatrix.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_canvas.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_checkbox.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_dropdown.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_img.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_label.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_line.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_objx_templ.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_roller.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_slider.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_switch.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_table.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets/lv_textarea.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/led/lv_led.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/animimg/lv_animimg.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/calendar/lv_calendar.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/calendar/lv_calendar_header_arrow.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/calendar/lv_calendar_header_dropdown.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/chart/lv_chart.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/colorwheel/lv_colorwheel.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/imgbtn/lv_imgbtn.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/keyboard/lv_keyboard.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/list/lv_list.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/menu/lv_menu.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/meter/lv_meter.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/msgbox/lv_msgbox.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/span/lv_span.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/spinbox/lv_spinbox.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/spinner/lv_spinner.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/tabview/lv_tabview.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/tileview/lv_tileview.c
+            - path: ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/widgets/win/lv_win.c
+          folders: []
+        - name: LVGL_port
+          files:
+            - path: ../../Middlewares/Third_Party/LVGL/port/lv_port_disp.c
+            - path: ../../Middlewares/Third_Party/LVGL/port/drv_lcd.c
+          folders: []
+        - name: LVGL_app
+          files:
+            - path: ../../Middlewares/Third_Party/LVGL/app/lv_gui.c
+            - path: ../../Middlewares/Third_Party/LVGL/app/lv_app.c
+          folders: []
+    - name: ::CMSIS
+      files: []
+      folders: []
+dependenceList: []
+outDir: build
+miscInfo:
+  uid: bf01eb19ec3746cde244d823be468f05
+targets:
+  TEST:
+    cppPreprocessAttrs:
+      defineList:
+        - USE_HAL_DRIVER
+        - STM32L475xx
+        - LV_CONF_INCLUDE_SIMPLE
+        - LV_LVGL_H_INCLUDE_SIMPLE
+        - STM32L475xx
+      incList:
+        - ../../Core/Inc
+        - ../../Drivers/STM32L4xx_HAL_Driver/Inc
+        - ../../Drivers/STM32L4xx_HAL_Driver/Inc/Legacy
+        - ../../Drivers/CMSIS/Device/ST/STM32L4xx/Include
+        - ../../Drivers/CMSIS/Include
+        - ../../USB_DEVICE/App
+        - ../../USB_DEVICE/Target
+        - ../../Middlewares/ST/STM32_USB_Device_Library/Core/Inc
+        - ../../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
+        - ../../Middlewares/Third_Party/FreeRTOS/Source/include
+        - ../../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS
+        - ../../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F
+        - ../../Middlewares/Third_Party/FreeMaster/src/common
+        - ../../Middlewares/Third_Party/FreeMaster/src/port
+        - ../../Middlewares/Third_Party/LVGL/port
+        - ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src
+        - ../../Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/extra/themes/default
+        - ../../Middlewares/Third_Party/LVGL/app
+        - .cmsis/include
+        - ../RTE/_TEST
+      libList: []
+    excludeList: []
+    toolchain: AC5
+    toolchainConfigMap:
+      AC5:
+        archExtensions: ""
+        cpuType: Cortex-M4
+        floatingPointHardware: single
+        options:
+          version: 4
+          afterBuildTasks: []
+          asm-compiler: {}
+          beforeBuildTasks: []
+          c/cpp-compiler:
+            CXX_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            C_FLAGS: --diag_suppress=1 --diag_suppress=1295
+            c99-mode: true
+            one-elf-section-per-function: true
+            optimization: level-0
+            warnings: all-warnings
+          global:
+            output-debug-info: enable
+            use-microLIB: false
+          linker:
+            $outputTaskExcludes:
+              - .bin
+            output-format: elf
+            ro-base: ""
+            rw-base: ""
+            xo-base: ""
+        scatterFilePath: ""
+        storageLayout:
+          RAM:
+            - id: 1
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 2
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 3
+              isChecked: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              noInit: false
+              tag: RAM
+            - id: 1
+              isChecked: true
+              mem:
+                size: "0x18000"
+                startAddr: "0x20000000"
+              noInit: false
+              tag: IRAM
+            - id: 2
+              isChecked: true
+              mem:
+                size: "0x8000"
+                startAddr: "0x10000000"
+              noInit: false
+              tag: IRAM
+          ROM:
+            - id: 1
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 3
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: ROM
+            - id: 1
+              isChecked: true
+              isStartup: true
+              mem:
+                size: "0x80000"
+                startAddr: "0x8000000"
+              tag: IROM
+            - id: 2
+              isChecked: false
+              isStartup: false
+              mem:
+                size: "0x0"
+                startAddr: "0x0"
+              tag: IROM
+        useCustomScatterFile: false
+    uploadConfigMap:
+      JLink:
+        baseAddr: ""
+        bin: ""
+        cpuInfo:
+          cpuName: "null"
+          vendor: "null"
+        otherCmds: ""
+        proType: 1
+        speed: 8000
+      STLink:
+        address: "0x8000000"
+        bin: ""
+        elFile: None
+        optionBytes: .eide/test.st.option.bytes.ini
+        otherCmds: ""
+        proType: SWD
+        resetMode: default
+        runAfterProgram: true
+        speed: 4000
+    uploader: STLink
