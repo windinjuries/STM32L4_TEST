@@ -802,7 +802,7 @@ int8_t esp8266_set_rtc_time_ntp(void)
     return ESP8266_EOK;
 }
 
-void wifi_task(void *argument)
+void wifi_task(const void *argument)
 {
     int8_t ret;
     char ip_buf[16];

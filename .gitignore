@@ -1,1 +1,4 @@
 MDK-ARM/TEST
+MDK-ARM/EIDE/build
+MDK-ARM/EIDE/.cmsis
+build

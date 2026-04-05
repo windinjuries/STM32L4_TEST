@@ -25,7 +25,7 @@
 /* USER CODE BEGIN Includes */
 #include "freemaster.h"
 #include "dc_control.h"
-#include "lv_gui.h"
+// #include "lv_gui.h"
 #include "esp8266_wifi.h"
 /* USER CODE END Includes */
 
@@ -44,7 +44,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
- RTC_HandleTypeDef hrtc;
+RTC_HandleTypeDef hrtc;
 
 SPI_HandleTypeDef hspi3;
 
@@ -75,11 +75,11 @@ osStaticThreadDef_t wifiTaskControlBlock;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_SPI3_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_RTC_Init(void);
 void StartDefaultTask(void const * argument);
@@ -99,6 +99,7 @@ void StartDefaultTask(void const * argument);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -121,11 +122,11 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_SPI3_Init();
   MX_TIM2_Init();
   MX_TIM3_Init();
   MX_USART1_UART_Init();
-  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
@@ -158,8 +159,8 @@ int main(void)
   osThreadStaticDef(tc214bTask, StartTC214BTask, osPriorityNormal, 0, 256, tc214bTaskBuffer, &tc214bTaskControlBlock);
   tc214bTaskHandle = osThreadCreate(osThread(tc214bTask), NULL);
 	
-	osThreadStaticDef(lvglTask, lvgl_gui_task, osPriorityNormal, 0, 512, lvglTaskBuffer, &lvglTaskControlBlock);
-  lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
+	// osThreadStaticDef(lvglTask, lvgl_gui_task, osPriorityNormal, 0, 512, lvglTaskBuffer, &lvglTaskControlBlock);
+  // lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
 
 	osThreadStaticDef(wifiTask, wifi_task, osPriorityNormal, 0, 512, wifiTaskBuffer, &wifiTaskControlBlock);
   wifiTaskHandle = osThreadCreate(osThread(wifiTask), NULL);
@@ -169,6 +170,7 @@ int main(void)
   osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -550,6 +552,9 @@ static void MX_DMA_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+
+  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -602,6 +607,9 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -646,13 +654,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM1) {
+  if (htim->Instance == TIM1)
+  {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
    if(htim->Instance == TIM3)
     {
-        lv_tick_inc(1);
+        // lv_tick_inc(1);
     }
 
   /* USER CODE END Callback 1 */
@@ -672,8 +681,7 @@ void Error_Handler(void)
   }
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.
