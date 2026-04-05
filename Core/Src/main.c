@@ -25,7 +25,7 @@
 /* USER CODE BEGIN Includes */
 #include "freemaster.h"
 #include "dc_control.h"
-// #include "lv_gui.h"
+#include "lv_gui.h"
 #include "esp8266_wifi.h"
 /* USER CODE END Includes */
 
@@ -64,7 +64,7 @@ uint32_t tc214bTaskBuffer[ 256 ];
 osStaticThreadDef_t tc214bTaskControlBlock;
 
 osThreadId lvglTaskHandle;
-uint32_t lvglTaskBuffer[ 512 ];
+uint32_t lvglTaskBuffer[ 2048 ];
 osStaticThreadDef_t lvglTaskControlBlock;
 
 osThreadId wifiTaskHandle;
@@ -161,8 +161,8 @@ int main(void)
   osThreadStaticDef(tc214bTask, StartTC214BTask, osPriorityNormal, 0, 256, tc214bTaskBuffer, &tc214bTaskControlBlock);
   tc214bTaskHandle = osThreadCreate(osThread(tc214bTask), NULL);
 	
-	// osThreadStaticDef(lvglTask, lvgl_gui_task, osPriorityNormal, 0, 512, lvglTaskBuffer, &lvglTaskControlBlock);
-  // lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
+	osThreadStaticDef(lvglTask, lvgl_gui_task, osPriorityNormal, 0, 2048, lvglTaskBuffer, &lvglTaskControlBlock);
+  lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
 
 	osThreadStaticDef(wifiTask, wifi_task, osPriorityNormal, 0, 512, wifiTaskBuffer, &wifiTaskControlBlock);
   wifiTaskHandle = osThreadCreate(osThread(wifiTask), NULL);
@@ -635,10 +635,11 @@ void StartDefaultTask(void const * argument)
   {
 		FMSTR_Poll();
     
-   // HAL_GPIO_WritePin(GPIOE, GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
-   // HAL_GPIO_WritePin(GPIOE, GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_SET);
+   HAL_GPIO_WritePin(GPIOE, GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
+   osDelay(1000);
+   HAL_GPIO_WritePin(GPIOE, GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_SET);
 
-    //osDelay(1000);
+    osDelay(1000);
   }
   /* USER CODE END 5 */
 }
@@ -670,7 +671,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   /* USER CODE BEGIN Callback 1 */
    if(htim->Instance == TIM3)
     {
-        // lv_tick_inc(1);
+        extern void lv_tick_inc(uint32_t tick_period);
+        lv_tick_inc(1);
         // FMSTR_Recorder(0);
     }
 
