@@ -70,6 +70,8 @@ osStaticThreadDef_t lvglTaskControlBlock;
 osThreadId wifiTaskHandle;
 uint32_t wifiTaskBuffer[ 512 ];
 osStaticThreadDef_t wifiTaskControlBlock;
+
+uint32_t num = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -657,11 +659,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim->Instance == TIM1)
   {
     HAL_IncTick();
+    FMSTR_Recorder(0);
+    num++;
+    if(num >= 256)
+    {
+      num = 0;
+    }
+
   }
   /* USER CODE BEGIN Callback 1 */
    if(htim->Instance == TIM3)
     {
         // lv_tick_inc(1);
+        // FMSTR_Recorder(0);
     }
 
   /* USER CODE END Callback 1 */
