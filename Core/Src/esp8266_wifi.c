@@ -656,13 +656,68 @@ int8_t esp8266_set_rtc_time_http(void)
     {
         return ESP8266_ERROR;
     }
-    
+
     return ESP8266_EOK;
 }
 
 /**
- * @brief       NTP timestamp structure
+ * @brief       Get weather info from wttr.in
+ * @param       city: City name (e.g., "Beijing", "Shanghai")
+ * @param       weather_buf: Buffer to store weather info (requires at least 64 bytes)
+ * @retval      ESP8266_EOK  : Successfully retrieved weather
+ *              ESP8266_ERROR: Failed to retrieve weather
  */
+int8_t esp8266_get_weather(char *city, char *weather_buf)
+{
+    int8_t ret;
+    char *response;
+    char *weather_start;
+    char *weather_end;
+    static char http_request[512];
+
+    // Connect to wttr.in
+    ret = esp8266_connect_server("TCP", "wttr.in", "80");
+    if (ret != ESP8266_EOK)
+    {
+        return ESP8266_ERROR;
+    }
+
+    // Send HTTP GET request for simple format
+    sprintf(http_request, "GET /%s?format=1 HTTP/1.1\r\nHost: wttr.in\r\nConnection: close\r\n\r\n", city);
+    char cmd[32];
+
+    sprintf(cmd, "AT+CIPSEND=%d", strlen(http_request));
+    ret = esp8266_send_at_cmd(cmd, ">", 1000);
+    if (ret != ESP8266_EOK)
+    {
+        return ESP8266_ERROR;
+    }
+
+    esp8266_uart_printf("%s", http_request);
+    esp8266_uart_rx_restart();
+    // Wait for response
+    osDelay(3000);
+
+    // Get response
+    response = (char *)esp8266_uart_rx_get_frame();
+    if (response == NULL)
+    {
+        return ESP8266_ERROR;
+    }
+
+    weather_end = strstr(response, "°C");
+
+    if (weather_end == NULL)
+    {
+        return ESP8266_ERROR;
+    }
+
+    weather_start = weather_end - 3;
+    strncpy(weather_buf, weather_start, 6);
+    weather_buf[6] = '\0';
+
+    return ESP8266_EOK;
+}
 typedef struct {
     uint32_t seconds;
     uint32_t fraction;
