@@ -32,6 +32,7 @@ set(USER_SOURCES_FREEMASTER
 # LVGL 源文件列表
 set(USER_SOURCES_LVGL
     Middlewares/Third_Party/LVGL/port/lv_port_disp.c
+    Middlewares/Third_Party/LVGL/port/lv_port_indev.c
     Middlewares/Third_Party/LVGL/port/drv_lcd.c
     Middlewares/Third_Party/LVGL/app/lv_gui.c
     Middlewares/Third_Party/LVGL/app/lv_demo_stress.c
