@@ -27,6 +27,8 @@
 #include "dc_control.h"
 #include "lv_gui.h"
 #include "esp8266_wifi.h"
+#include "bsp_flash.h"
+#include "app_main.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -133,6 +135,8 @@ int main(void)
   MX_RTC_Init();
   /* USER CODE BEGIN 2 */
   FMSTR_Init();
+
+  app_init();
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -633,7 +637,12 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-		FMSTR_Poll();
+    int i = 1;
+    int a = 1 / i;
+    if(a > 0)
+    {
+      FMSTR_Poll();
+    }
     
    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
    osDelay(1000);

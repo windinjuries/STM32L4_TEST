@@ -861,7 +861,7 @@ void wifi_task(const void *argument)
 {
     int8_t ret;
     char ip_buf[16];
-    char time_buf[32];
+    // char time_buf[32];
     // Initialize state machine
     
     while (1)

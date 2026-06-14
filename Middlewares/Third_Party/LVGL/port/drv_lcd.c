@@ -28,16 +28,16 @@ static int spi_transmit(uint8_t *data, uint16_t size)
     return size;
 }
 
-static int spi_receive(uint8_t *data, uint16_t size)
-{   
-    LCD_CS_LOW();
-    if (HAL_SPI_Receive(&hspi3, data, size, HAL_MAX_DELAY) != HAL_OK)
-    {
-        return -1;
-    }
-    LCD_CS_HIGH();
-    return size;
-}
+// static int spi_receive(uint8_t *data, uint16_t size)
+// {   
+//     LCD_CS_LOW();
+//     if (HAL_SPI_Receive(&hspi3, data, size, HAL_MAX_DELAY) != HAL_OK)
+//     {
+//         return -1;
+//     }
+//     LCD_CS_HIGH();
+//     return size;
+// }
 
 static int lcd_write_cmd(const uint8_t cmd)
 {
@@ -70,25 +70,25 @@ static int lcd_write_data(const uint8_t data)
     }
 }
 
-static int lcd_write_half_word(const uint16_t da)
-{
-    uint32_t len;
-    char data[2] = {0};
+// static int lcd_write_half_word(const uint16_t da)
+// {
+//     uint32_t len;
+//     char data[2] = {0};
 
-    data[0] = da >> 8;
-    data[1] = da;
+//     data[0] = da >> 8;
+//     data[1] = da;
 
-    LCD_DC_HIGH();
-    len = spi_transmit((uint8_t *)&data, 2);
-    if (len != 2)
-    {
-        return -1;
-    }
-    else
-    {
-        return 0;
-    }
-}
+//     LCD_DC_HIGH();
+//     len = spi_transmit((uint8_t *)&data, 2);
+//     if (len != 2)
+//     {
+//         return -1;
+//     }
+//     else
+//     {
+//         return 0;
+//     }
+// }
 
 static void lcd_gpio_init(void)
 {
