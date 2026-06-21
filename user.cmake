@@ -42,6 +42,7 @@ set(USER_SOURCES_APP
     APP/dc_control.c
     App/storage.c
     App/app_main.c
+    APP/modbus.c
     # Test
     # Test/test_bsp_flash.c
 )

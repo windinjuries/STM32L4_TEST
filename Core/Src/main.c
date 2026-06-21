@@ -55,23 +55,14 @@ TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
+UART_HandleTypeDef huart3;
 DMA_HandleTypeDef hdma_usart2_rx;
+DMA_HandleTypeDef hdma_usart3_rx;
 
 osThreadId defaultTaskHandle;
 uint32_t defaultTaskBuffer[ 128 ];
 osStaticThreadDef_t defaultTaskControlBlock;
 /* USER CODE BEGIN PV */
-osThreadId tc214bTaskHandle;
-uint32_t tc214bTaskBuffer[ 256 ];
-osStaticThreadDef_t tc214bTaskControlBlock;
-
-osThreadId lvglTaskHandle;
-uint32_t lvglTaskBuffer[ 2048 ];
-osStaticThreadDef_t lvglTaskControlBlock;
-
-osThreadId wifiTaskHandle;
-uint32_t wifiTaskBuffer[ 512 ];
-osStaticThreadDef_t wifiTaskControlBlock;
 
 uint32_t num = 0;
 /* USER CODE END PV */
@@ -86,6 +77,7 @@ static void MX_TIM3_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_RTC_Init(void);
+static void MX_USART3_UART_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -133,8 +125,8 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_RTC_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-  FMSTR_Init();
 
   app_init();
   /* USER CODE END 2 */
@@ -162,14 +154,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  osThreadStaticDef(tc214bTask, StartTC214BTask, osPriorityNormal, 0, 256, tc214bTaskBuffer, &tc214bTaskControlBlock);
-  tc214bTaskHandle = osThreadCreate(osThread(tc214bTask), NULL);
-	
-	osThreadStaticDef(lvglTask, lvgl_gui_task, osPriorityNormal, 0, 2048, lvglTaskBuffer, &lvglTaskControlBlock);
-  lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
-
-	osThreadStaticDef(wifiTask, wifi_task, osPriorityNormal, 0, 512, wifiTaskBuffer, &wifiTaskControlBlock);
-  wifiTaskHandle = osThreadCreate(osThread(wifiTask), NULL);
+  app_task_init();
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -535,6 +520,41 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
+  * @brief USART3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART3_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART3_Init 0 */
+
+  /* USER CODE END USART3_Init 0 */
+
+  /* USER CODE BEGIN USART3_Init 1 */
+
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 115200;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart3.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART3_Init 2 */
+
+  /* USER CODE END USART3_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -544,6 +564,9 @@ static void MX_DMA_Init(void)
   __HAL_RCC_DMA1_CLK_ENABLE();
 
   /* DMA interrupt init */
+  /* DMA1_Channel3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
   /* DMA1_Channel6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
@@ -567,8 +590,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOE_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOE, GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
@@ -637,13 +660,7 @@ void StartDefaultTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    int i = 1;
-    int a = 1 / i;
-    if(a > 0)
-    {
-      FMSTR_Poll();
-    }
-    
+   FMSTR_Poll();
    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
    osDelay(1000);
    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_SET);
@@ -669,21 +686,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim->Instance == TIM1)
   {
     HAL_IncTick();
-    FMSTR_Recorder(0);
-    num++;
-    if(num >= 256)
-    {
-      num = 0;
-    }
-
   }
   /* USER CODE BEGIN Callback 1 */
-   if(htim->Instance == TIM3)
-    {
-        extern void lv_tick_inc(uint32_t tick_period);
-        lv_tick_inc(1);
-        // FMSTR_Recorder(0);
-    }
+  if(htim->Instance == TIM3)
+  {
+    app_timer_it_callback();
+      // FMSTR_Recorder(0);
+  }
 
   /* USER CODE END Callback 1 */
 }
