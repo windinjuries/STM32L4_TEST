@@ -16,5 +16,6 @@
         "gdb",
         "embedded-debug",
         "arm-debugger"
-    ]
+    ],
+    "terminal.integrated.stickyScroll.enabled": false
 }

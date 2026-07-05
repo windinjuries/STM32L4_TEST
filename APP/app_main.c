@@ -1,7 +1,13 @@
 #include "storage.h"
 #include "config.h"
 #include "cmsis_os.h"
+
+#if (CONFIG_USE_FREEMASTER == 1)
 #include "freemaster.h"
+#else
+#include "debug_log.h"
+#endif
+
 #include "dc_control.h"
 #include "lv_gui.h"
 #include "esp8266_wifi.h"
@@ -25,11 +31,22 @@ osThreadId modbusTaskHandle;
 uint32_t modbusTaskBuffer[ 256 ];
 osStaticThreadDef_t modbusTaskControlBlock;
 
+osThreadId netTaskHandle;
+uint32_t netTaskBuffer[ 512 ];
+osStaticThreadDef_t netTaskControlBlock;
+
 void app_init()
 {
+#if (CONFIG_USE_FREEMASTER == 1)
     FMSTR_Init();
+#else
+    log_init();
+#endif
     param_storage_init();
     modbus_init();
+#if (CONFIG_USE_FREEMASTER == 0)
+    LOG_INFO("System initialized, starting tasks...");
+#endif
 }
 
 void app_task_init()
@@ -47,6 +64,9 @@ void app_task_init()
 
     osThreadStaticDef(modbusTask, modbus_task, osPriorityNormal, 0, 256, modbusTaskBuffer, &modbusTaskControlBlock);
     modbusTaskHandle = osThreadCreate(osThread(modbusTask), NULL);
+
+    osThreadStaticDef(netTask, net_task, osPriorityNormal, 0, 512, netTaskBuffer, &netTaskControlBlock);
+    netTaskHandle = osThreadCreate(osThread(netTask), NULL);
 
 }
 

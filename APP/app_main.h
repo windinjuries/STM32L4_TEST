@@ -7,4 +7,5 @@ void app_task_init();
 
 void app_timer_it_callback();
 void modbus_task(void const *argument);
+void net_task(void const *argument);
 #endif

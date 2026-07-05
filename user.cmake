@@ -11,6 +11,62 @@ file(GLOB_RECURSE LVGL_CORE_SOURCES
     Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/font/*.c
 )
 
+set(LWIP_DIR Middlewares/Third_Party/lwip-STABLE-2_2_1_RELEASE)
+set(IOLIB_DIR Middlewares/Third_Party/ioLibrary_Driver-3.2.0)
+
+set(USER_SOURCES_LWIP_CORE
+    ${LWIP_DIR}/src/core/init.c
+    ${LWIP_DIR}/src/core/def.c
+    ${LWIP_DIR}/src/core/dns.c
+    ${LWIP_DIR}/src/core/inet_chksum.c
+    ${LWIP_DIR}/src/core/ip.c
+    ${LWIP_DIR}/src/core/mem.c
+    ${LWIP_DIR}/src/core/memp.c
+    ${LWIP_DIR}/src/core/netif.c
+    ${LWIP_DIR}/src/core/pbuf.c
+    ${LWIP_DIR}/src/core/raw.c
+    ${LWIP_DIR}/src/core/stats.c
+    ${LWIP_DIR}/src/core/sys.c
+    ${LWIP_DIR}/src/core/altcp.c
+    ${LWIP_DIR}/src/core/altcp_alloc.c
+    ${LWIP_DIR}/src/core/altcp_tcp.c
+    ${LWIP_DIR}/src/core/tcp.c
+    ${LWIP_DIR}/src/core/tcp_in.c
+    ${LWIP_DIR}/src/core/tcp_out.c
+    ${LWIP_DIR}/src/core/timeouts.c
+    ${LWIP_DIR}/src/core/udp.c
+    ${LWIP_DIR}/src/core/ipv4/acd.c
+    ${LWIP_DIR}/src/core/ipv4/autoip.c
+    ${LWIP_DIR}/src/core/ipv4/dhcp.c
+    ${LWIP_DIR}/src/core/ipv4/etharp.c
+    ${LWIP_DIR}/src/core/ipv4/icmp.c
+    ${LWIP_DIR}/src/core/ipv4/ip4_frag.c
+    ${LWIP_DIR}/src/core/ipv4/ip4.c
+    ${LWIP_DIR}/src/core/ipv4/ip4_addr.c
+    ${LWIP_DIR}/src/api/api_lib.c
+    ${LWIP_DIR}/src/api/api_msg.c
+    ${LWIP_DIR}/src/api/err.c
+    ${LWIP_DIR}/src/api/if_api.c
+    ${LWIP_DIR}/src/api/netbuf.c
+    ${LWIP_DIR}/src/api/netdb.c
+    ${LWIP_DIR}/src/api/netifapi.c
+    ${LWIP_DIR}/src/api/sockets.c
+    ${LWIP_DIR}/src/api/tcpip.c
+    ${LWIP_DIR}/src/netif/ethernet.c
+)
+
+set(USER_SOURCES_LWIP_PORT
+    Middlewares/Third_Party/LwIP/port/ethernetif.c
+    Middlewares/Third_Party/LwIP/port/w5500_hw.c
+    ${LWIP_DIR}/contrib/ports/freertos/sys_arch.c
+)
+
+set(USER_SOURCES_W5500
+    ${IOLIB_DIR}/Ethernet/wizchip_conf.c
+    ${IOLIB_DIR}/Ethernet/W5500/w5500.c
+    ${IOLIB_DIR}/Ethernet/socket.c
+)
+
 set(USER_SOURCES_FREEMASTER
     Middlewares/Third_Party/FreeMaster/src/common/freemaster_utils.c
     Middlewares/Third_Party/FreeMaster/src/common/freemaster_ures.c
@@ -43,19 +99,26 @@ set(USER_SOURCES_APP
     App/storage.c
     App/app_main.c
     APP/modbus.c
-    # Test
-    # Test/test_bsp_flash.c
+    APP/net_init.c
+    APP/tcp_client_demo.c
+    APP/debug_log.c
 )
 
-# 合并所有用户源文件
-set(USER_SOURCES ${USER_SOURCES_FREEMASTER} ${USER_SOURCES_LVGL} ${LVGL_CORE_SOURCES} ${USER_SOURCES_APP})
+set(USER_SOURCES ${USER_SOURCES_FREEMASTER} ${USER_SOURCES_LVGL} ${LVGL_CORE_SOURCES} ${USER_SOURCES_APP}
+    ${USER_SOURCES_LWIP_CORE} ${USER_SOURCES_LWIP_PORT} ${USER_SOURCES_W5500})
 
-# 用户 include 路径
 set(USER_INCLUDES
     APP
     BSP
     Test
     Test/unity
+    Middlewares/Third_Party/LwIP/port
+    Middlewares/Third_Party/LwIP/port/arch
+    ${LWIP_DIR}/src/include
+    ${LWIP_DIR}/contrib
+    ${LWIP_DIR}/contrib/ports/freertos/include
+    ${IOLIB_DIR}/Ethernet
+    ${IOLIB_DIR}/Ethernet/W5500
     Middlewares/Third_Party/FreeMaster/src/common
     Middlewares/Third_Party/FreeMaster/src/port
     Middlewares/Third_Party/FreeMaster/src/platforms/gen32le
@@ -72,14 +135,10 @@ set(USER_INCLUDES
     Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets
 )
 
-# 用户编译定义
 set(USER_COMPILE_DEFINITIONS
     LV_CONF_INCLUDE_SIMPLE
     LV_LVGL_H_INCLUDE_SIMPLE
-    # RUN_FLASH_TESTS
 )
 
-# 用户链接库
 set(USER_LINK_LIBRARIES
-    # lvgl 已作为源文件直接加入编译，无需再作为库链接
 )

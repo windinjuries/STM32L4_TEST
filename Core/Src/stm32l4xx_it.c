@@ -24,6 +24,8 @@
 /* USER CODE BEGIN Includes */
 #include "modbus.h"
 #include "config.h"
+#include "w5500_hw.h"
+#include "ethernetif.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -169,6 +171,20 @@ void DebugMon_Handler(void)
 /******************************************************************************/
 
 /**
+  * @brief This function handles EXTI line3 interrupt.
+  */
+void EXTI3_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI3_IRQn 0 */
+
+  /* USER CODE END EXTI3_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_3);
+  /* USER CODE BEGIN EXTI3_IRQn 1 */
+
+  /* USER CODE END EXTI3_IRQn 1 */
+}
+
+/**
   * @brief This function handles DMA1 channel3 global interrupt.
   */
 void DMA1_Channel3_IRQHandler(void)
@@ -230,8 +246,11 @@ void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
 
+#if (CONFIG_USE_FREEMASTER == 1)
   	extern void FMSTR_SerialIsr();
     FMSTR_SerialIsr();
+#endif
+
   /* USER CODE END USART1_IRQn 0 */
   HAL_UART_IRQHandler(&huart1);
   /* USER CODE BEGIN USART1_IRQn 1 */
@@ -288,5 +307,17 @@ void OTG_FS_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
+
+/**
+  * @brief  EXTI line detection callback (W5500 interrupt).
+  * @param  GPIO_Pin: Pin number that triggered the interrupt
+  */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+    if (GPIO_Pin == W5500_INT_Pin)
+    {
+        ethernetif_notify_rx();
+    }
+}
 
 /* USER CODE END 1 */
