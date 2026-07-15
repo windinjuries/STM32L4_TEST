@@ -10,7 +10,7 @@
 #include "debug.h"
 #include "CH395INC.H"
 
-void CH395Reset(void); /* hardware Reset */
+// void CH395Reset(void); /* hardware Reset */
 
 UINT8 CH395CMDGetVer(void); /* Obtain the chip and firmware version number */
 

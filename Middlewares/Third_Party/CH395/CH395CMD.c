@@ -16,12 +16,12 @@
  * Output         : None
  * Return         : None
  *******************************************************************************/
-void CH395Reset(void)
-{
-    GPIO_WriteBit(GPIOA, GPIO_Pin_4, Bit_RESET);
-    Delay_Ms(10);
-    GPIO_WriteBit(GPIOA, GPIO_Pin_4, Bit_SET);
-}
+// void CH395Reset(void)
+// {
+//     GPIO_WriteBit(GPIOA, GPIO_Pin_4, Bit_RESET);
+//     Delay_Ms(10);
+//     GPIO_WriteBit(GPIOA, GPIO_Pin_4, Bit_SET);
+// }
 
 /********************************************************************************
  * Function Name  : CH395CMDGetVer

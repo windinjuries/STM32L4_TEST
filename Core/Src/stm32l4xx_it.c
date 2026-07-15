@@ -24,8 +24,12 @@
 /* USER CODE BEGIN Includes */
 #include "modbus.h"
 #include "config.h"
-#include "w5500_hw.h"
 #include "ethernetif.h"
+#ifdef CONFIG_USE_LWIP_PORT_CH395Q
+#include "ch395_hw.h"
+#else
+#include "w5500_hw.h"
+#endif
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -314,7 +318,11 @@ void OTG_FS_IRQHandler(void)
   */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+#ifdef CONFIG_USE_LWIP_PORT_CH395Q
+    if (GPIO_Pin == CH395_INT_Pin)
+#else
     if (GPIO_Pin == W5500_INT_Pin)
+#endif
     {
         ethernetif_notify_rx();
     }

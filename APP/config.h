@@ -9,5 +9,10 @@
  */
 #define CONFIG_USE_FREEMASTER      0
 
+
+#define CONFIG_USE_LWIP_PORT_CH395Q 1
+// #define CONFIG_USE_LWIP_PORT_W5500  0
+
+
 #endif
 

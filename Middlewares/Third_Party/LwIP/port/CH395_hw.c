@@ -1,144 +1,122 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "task.h"
-
+#include "wizchip_conf.h"
 #include "CH395_hw.h"
+#include "CH395CMD.H"
 #include "debug_log.h"
 #include <stdint.h>
 
-SPI_HandleTypeDef hspi1;
+static SemaphoreHandle_t s_ch395_spi_mutex;
 
-static SemaphoreHandle_t s_ch395q_spi_mutex;
-
-static void ch395q_cs_select(void)
+void Delay_Us(uint32_t n)
 {
-    HAL_GPIO_WritePin(ch395q_CS_GPIO_Port, ch395q_CS_Pin, GPIO_PIN_RESET);
+    ch395_delay_us(n);
 }
 
-static void ch395q_cs_deselect(void)
+void Delay_Ms(uint32_t n)
 {
-    HAL_GPIO_WritePin(ch395q_CS_GPIO_Port, ch395q_CS_Pin, GPIO_PIN_SET);
+    HAL_Delay(n);
 }
 
-static void ch395q_cris_enter(void)
+void ch395_delay_us(uint32_t us)
 {
-    xSemaphoreTake(s_ch395q_spi_mutex, portMAX_DELAY);
+    static uint8_t s_dwt_inited = 0U;
+
+    if (s_dwt_inited == 0U)
+    {
+        CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+        DWT->CYCCNT = 0U;
+        DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+        s_dwt_inited = 1U;
+    }
+
+    const uint32_t start = DWT->CYCCNT;
+    const uint32_t cycles = (SystemCoreClock * us + 999999U) / 1000000U;
+
+    while ((DWT->CYCCNT - start) < cycles)
+    {
+    }
 }
 
-static void ch395q_cris_exit(void)
+ void ch395_cs_select(void)
 {
-    xSemaphoreGive(s_ch395q_spi_mutex);
+    HAL_GPIO_WritePin(CH395_CS_GPIO_Port, CH395_CS_Pin, GPIO_PIN_RESET);
 }
 
-static uint8_t ch395q_spi_readbyte(void)
+ void ch395_cs_deselect(void)
 {
-    uint8_t tx = 0x00;
+    HAL_GPIO_WritePin(CH395_CS_GPIO_Port, CH395_CS_Pin, GPIO_PIN_SET);
+}
+
+void ch395_cris_enter(void)
+{
+    xSemaphoreTake(s_ch395_spi_mutex, portMAX_DELAY);
+}
+
+void ch395_cris_exit(void)
+{
+    xSemaphoreGive(s_ch395_spi_mutex);
+}
+
+uint8_t ch395_spi_swapbyte(uint8_t wb)
+{
+    uint8_t tx = wb;
     uint8_t rx = 0x00;
-    HAL_SPI_TransmitReceive(&ch395q_SPI_HANDLE, &tx, &rx, 1, HAL_MAX_DELAY);
+    HAL_SPI_TransmitReceive(&CH395_SPI_HANDLE, &tx, &rx, 1, HAL_MAX_DELAY);
     return rx;
 }
 
-static void ch395q_spi_writebyte(uint8_t wb)
+void ch395_hw_reset(void)
 {
-    HAL_SPI_Transmit(&ch395q_SPI_HANDLE, &wb, 1, HAL_MAX_DELAY);
-}
-
-static void ch395q_spi_readburst(uint8_t *pBuf, uint16_t len)
-{
-    static uint8_t dummy_tx[64];
-    uint16_t offset = 0U;
-    uint16_t chunk;
-
-    if ((pBuf == NULL) || (len == 0U))
-    {
-        return;
-    }
-
-    while (offset < len)
-    {
-        chunk = (uint16_t)(len - offset);
-        if (chunk > sizeof(dummy_tx))
-        {
-            chunk = sizeof(dummy_tx);
-        }
-
-        HAL_SPI_TransmitReceive(&ch395q_SPI_HANDLE,
-                                dummy_tx,
-                                &pBuf[offset],
-                                chunk,
-                                HAL_MAX_DELAY);
-        offset = (uint16_t)(offset + chunk);
-    }
-}
-
-static void ch395q_spi_writeburst(uint8_t *pBuf, uint16_t len)
-{
-    if ((pBuf == NULL) || (len == 0U))
-    {
-        return;
-    }
-    HAL_SPI_Transmit(&ch395q_SPI_HANDLE, pBuf, len, HAL_MAX_DELAY);
-}
-
-void ch395q_hw_reset(void)
-{
-    HAL_GPIO_WritePin(ch395q_RST_GPIO_Port, ch395q_RST_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(CH395_RST_GPIO_Port, CH395_RST_Pin, GPIO_PIN_RESET);
     HAL_Delay(2);
-    HAL_GPIO_WritePin(ch395q_RST_GPIO_Port, ch395q_RST_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(CH395_RST_GPIO_Port, CH395_RST_Pin, GPIO_PIN_SET);
     HAL_Delay(50);
 }
 
-void ch395q_hw_register_callbacks(void)
+int8_t ch395_communication_test(void)
 {
-    reg_wizchip_cris_cbfunc(ch395q_cris_enter, ch395q_cris_exit);
-    reg_wizchip_cs_cbfunc(ch395q_cs_select, ch395q_cs_deselect);
-    reg_wizchip_spi_cbfunc(ch395q_spi_readbyte, ch395q_spi_writebyte);
-    reg_wizchip_spiburst_cbfunc(ch395q_spi_readburst, ch395q_spi_writeburst);
-}
-int8_t ch395q_read_version_test(void)
-{
-    uint8_t version = 0U;
-    ch395q_cris_enter();
-    ch395q_spi_writebyte(0x01);
-    version = ch395q_spi_readbyte();
-    ch395q_cris_exit();
-
-    LOG_INFO("ch395q register test: VERSIONR=0x%02X", version);
-    if (version != 0x04U)
-    {
-        LOG_ERROR("ch395q register test failed: VERSIONR=0x%02X", version);
-        return -1;
-    }
+    // const uint8_t testdata = 0x5AU;
+    // uint8_t result = 0U;
 
     return 0;
-
 }
 
-void ch395q_hw_int_enable(void)
+int8_t ch395_init(void)
 {
-    HAL_NVIC_EnableIRQ(ch395q_INT_EXTI_IRQn);
-}
-
-void ch395q_hw_int_disable(void)
-{
-    HAL_NVIC_DisableIRQ(ch395q_INT_EXTI_IRQn);
-}
-
-void ch395q_hw_init(void)
-{
-    if (s_ch395q_spi_mutex == NULL)
+    uint8_t ver = 0;
+    if (ch395_communication_test() == 0)
     {
-        s_ch395q_spi_mutex = xSemaphoreCreateMutex();
-    }
-
-    ch395q_hw_reset();
-    ch395q_hw_register_callbacks();
-    if (ch395q_hw_register_read_test() != 0U)
-    {
-        LOG_INFO("ch395q register read test passed.");
+        LOG_INFO("CH395 communication test passed.");
     }
     else
     {
-        LOG_ERROR("ch395q register read test failed.");
+        LOG_ERROR("CH395 communication test failed.");
     }
+    ver = CH395CMDGetVer();
+    printf("CH395VER : %2x\r\n", ver);
+    int8_t ret = CH395CMDInitCH395();
+    return ret;
+}
+
+
+void ch395_hw_int_enable(void)
+{
+    HAL_NVIC_EnableIRQ(CH395_INT_EXTI_IRQn);
+}
+
+void ch395_hw_int_disable(void)
+{
+    HAL_NVIC_DisableIRQ(CH395_INT_EXTI_IRQn);
+}
+
+void ch395_hw_init(void)
+{
+    if (s_ch395_spi_mutex == NULL)
+    {
+        s_ch395_spi_mutex = xSemaphoreCreateMutex();
+    }
+
+    ch395_hw_reset();
 }

@@ -58,6 +58,7 @@ set(USER_SOURCES_LWIP_CORE
 set(USER_SOURCES_LWIP_PORT
     Middlewares/Third_Party/LwIP/port/ethernetif.c
     Middlewares/Third_Party/LwIP/port/w5500_hw.c
+    Middlewares/Third_Party/LwIP/port/ch395_hw.c
     ${LWIP_DIR}/contrib/ports/freertos/sys_arch.c
 )
 
@@ -65,6 +66,11 @@ set(USER_SOURCES_W5500
     ${IOLIB_DIR}/Ethernet/wizchip_conf.c
     ${IOLIB_DIR}/Ethernet/W5500/w5500.c
     ${IOLIB_DIR}/Ethernet/socket.c
+)
+
+set(USER_SOURCES_CH395
+    Middlewares/Third_Party/CH395/CH395SPI_HW.c
+    Middlewares/Third_Party/CH395/CH395CMD.c
 )
 
 set(USER_SOURCES_FREEMASTER
@@ -105,7 +111,7 @@ set(USER_SOURCES_APP
 )
 
 set(USER_SOURCES ${USER_SOURCES_FREEMASTER} ${USER_SOURCES_LVGL} ${LVGL_CORE_SOURCES} ${USER_SOURCES_APP}
-    ${USER_SOURCES_LWIP_CORE} ${USER_SOURCES_LWIP_PORT} ${USER_SOURCES_W5500})
+    ${USER_SOURCES_LWIP_CORE} ${USER_SOURCES_LWIP_PORT} ${USER_SOURCES_W5500} ${USER_SOURCES_CH395})
 
 set(USER_INCLUDES
     APP
@@ -133,6 +139,7 @@ set(USER_INCLUDES
     Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/hal
     Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc
     Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets
+    Middlewares/Third_Party/CH395
 )
 
 set(USER_COMPILE_DEFINITIONS

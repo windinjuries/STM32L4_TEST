@@ -4,12 +4,14 @@
 #include "tcp_client_demo.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "ch395_hw.h"
 #include "w5500_hw.h"
 #include "lwip/init.h"
 #include "lwip/tcpip.h"
 #include "lwip/dhcp.h"
 #include "lwip/ip4_addr.h"
 #include "cmsis_os.h"
+#include "config.h"
 
 struct netif g_netif;
 TaskHandle_t tcpip_thread_handle;
@@ -54,7 +56,11 @@ static void tcpip_init_done(void *arg)
 void net_init(void)
 {
     s_net_ready = 0U;
+#ifdef CONFIG_USE_LWIP_PORT_CH395Q
+    ch395_hw_init();
+#else
     w5500_hw_init();
+#endif
     tcpip_init(tcpip_init_done, NULL);
 }
 
