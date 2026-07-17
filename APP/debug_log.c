@@ -3,6 +3,11 @@
 #include <stdarg.h>
 #include <string.h>
 #include "stm32l4xx_hal.h"
+#include "config.h"
+
+#if CONFIG_LOG_OUTPUT_RTT
+#include "SEGGER_RTT.h"
+#endif
 
 /* 引用 CubeMX 初始化的 USART1 句柄 */
 extern UART_HandleTypeDef huart1;
@@ -22,9 +27,22 @@ static const char *const s_level_prefix[] = {
 void log_init(void)
 {
     /* USART1 已由 MX_USART1_UART_Init() 初始化，无需额外操作 */
+
+#if CONFIG_LOG_OUTPUT_RTT
+    /* 初始化 SEGGER RTT */
+    SEGGER_RTT_Init();
+#endif
+
     log_puts("\r\n========================================\r\n");
     log_puts("  Debug Log System Initialized\r\n");
+
+#if CONFIG_LOG_OUTPUT_RTT
+    log_puts("  Output: USART1 + SEGGER RTT\r\n");
+    SEGGER_RTT_WriteString(0, RTT_CTRL_TEXT_GREEN "  [RTT]   Ready - view with J-Link RTT Viewer\r\n" RTT_CTRL_RESET);
+#else
     log_puts("  USART1 115200 8N1\r\n");
+#endif
+
     log_puts("========================================\r\n");
 }
 
@@ -37,6 +55,9 @@ void log_puts(const char *str)
 {
     if (str == NULL) return;
     HAL_UART_Transmit(&huart1, (uint8_t *)str, strlen(str), HAL_MAX_DELAY);
+#if CONFIG_LOG_OUTPUT_RTT
+    SEGGER_RTT_WriteString(0, str);
+#endif
 }
 
 void log_printf(log_level_t level, const char *fmt, ...)
@@ -75,4 +96,9 @@ void log_printf(log_level_t level, const char *fmt, ...)
 
     /* 通过 USART1 发送 */
     HAL_UART_Transmit(&huart1, (uint8_t *)buffer, pos, HAL_MAX_DELAY);
+
+#if CONFIG_LOG_OUTPUT_RTT
+    /* 同时通过 SEGGER RTT 发送（缓冲区 0 = Terminal） */
+    SEGGER_RTT_Write(0, buffer, pos);
+#endif
 }

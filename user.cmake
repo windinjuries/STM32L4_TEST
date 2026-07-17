@@ -98,6 +98,11 @@ set(USER_SOURCES_LVGL
     Middlewares/Third_Party/LVGL/app/lv_app.c
 )
 
+set(USER_SOURCES_SEGGER_RTT
+    Middlewares/Third_Party/SeggerRTT/SEGGER_RTT.c
+    Middlewares/Third_Party/SeggerRTT/SEGGER_RTT_printf.c
+)
+
 set(USER_SOURCES_APP
     BSP/bsp_flash.c
     APP/esp8266_wifi.c
@@ -111,7 +116,8 @@ set(USER_SOURCES_APP
 )
 
 set(USER_SOURCES ${USER_SOURCES_FREEMASTER} ${USER_SOURCES_LVGL} ${LVGL_CORE_SOURCES} ${USER_SOURCES_APP}
-    ${USER_SOURCES_LWIP_CORE} ${USER_SOURCES_LWIP_PORT} ${USER_SOURCES_W5500} ${USER_SOURCES_CH395})
+    ${USER_SOURCES_LWIP_CORE} ${USER_SOURCES_LWIP_PORT} ${USER_SOURCES_W5500} ${USER_SOURCES_CH395}
+    ${USER_SOURCES_SEGGER_RTT})
 
 set(USER_INCLUDES
     APP
@@ -140,6 +146,7 @@ set(USER_INCLUDES
     Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/misc
     Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/widgets
     Middlewares/Third_Party/CH395
+    Middlewares/Third_Party/SeggerRTT
 )
 
 set(USER_COMPILE_DEFINITIONS

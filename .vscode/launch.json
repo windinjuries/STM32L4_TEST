@@ -4,7 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        
+        // ST-Link GDB Server 配置
         {
             "type": "stlinkgdbtarget",
             "request": "launch",
@@ -18,6 +18,72 @@
                     "imageFileName": "${command:st-stm32-ide-debug-launch.get-projects-binary-from-context1}"
                 }
             ],
+        },
+        // OpenOCD 配置
+        {
+            "name": "Debug with OpenOCD",
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "openocd",
+            "serverpath": "C:/Users/Administrator/Downloads/openocd-20260302/OpenOCD-20260302-0.12.0/bin/openocd.exe",
+            "gdbPath": "${env:CUBE_BUNDLE_PATH}/gnu-gdb-for-stm32/14.3.1+st.2/bin/arm-none-eabi-gdb.exe",
+            "executable": "${workspaceFolder}/build/Debug/TEST.elf",
+            "configFiles": [
+                "interface/stlink-v2.cfg",
+                "target/stm32l4x.cfg"
+            ],
+            // RTT 已禁用 — ST-Link V2 不支持 OpenOCD 的 monitor rtt start 命令
+            // （Protocol error with Rcmd: 01）
+            // 固件中 SEGGER_RTT_Init() 仍正常运行（NO_BLOCK_SKIP 模式，不阻塞）
+            // 如需 RTT 输出，请使用 "Debug with pyOCD + RTT" 配置，或换用 J-Link
+            "rttConfig": {
+                "enabled": false
+            },
+        },
+        // pyOCD 方案 A：VS Code 启动 pyocd（当前版本偶发 timeout，备用）
+        {
+            "name": "Debug with pyOCD + RTT (Auto)",
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "pyocd",
+            "serverpath": "C:/Users/Administrator/.pyenv/pyenv-win/versions/3.10.11/Scripts/pyocd.exe",
+            "serverArgs": ["--target", "stm32l475xg", "--frequency", "1000000"],
+            "gdbPath": "${env:CUBE_BUNDLE_PATH}/gnu-gdb-for-stm32/14.3.1+st.2/bin/arm-none-eabi-gdb.exe",
+            "executable": "${workspaceFolder}/build/Debug/TEST.elf",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "label": "RTT Ch.0",
+                        "port": 0,
+                        "type": "console"
+                    }
+                ]
+            }
+        },
+        // pyOCD 方案 B：手动启动 pyocd，VS Code 仅连接 GDB
+        // 终端中先运行: pyocd gdbserver --target stm32l475xg --port 50000
+        // 然后按 F5 启动此配置
+        {
+            "name": "Debug with pyOCD + RTT (Manual)",
+            "type": "cortex-debug",
+            "request": "attach",
+            "servertype": "external",
+            "gdbTarget": "localhost:50000",
+            "gdbPath": "${env:CUBE_BUNDLE_PATH}/gnu-gdb-for-stm32/14.3.1+st.2/bin/arm-none-eabi-gdb.exe",
+            "executable": "${workspaceFolder}/build/Debug/TEST.elf",
+            "rttConfig": {
+                "enabled": true,
+                "address": "auto",
+                "decoders": [
+                    {
+                        "label": "RTT Ch.0",
+                        "port": 0,
+                        "type": "console"
+                    }
+                ]
+            }
         }
     ]
 }
