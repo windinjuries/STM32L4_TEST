@@ -14,6 +14,7 @@
 #include "bsp_flash.h"
 #include "modbus.h"
 #include "app_main.h"
+#include "stm32l4xx_hal.h"
 
 osThreadId tc214bTaskHandle;
 uint32_t tc214bTaskBuffer[ 256 ];
@@ -47,6 +48,10 @@ void app_init()
 #if (CONFIG_USE_FREEMASTER == 0)
     LOG_INFO("System initialized, starting tasks...");
 #endif
+
+    extern TIM_HandleTypeDef htim6;
+    HAL_TIM_Base_Start_IT(&htim6);
+
 }
 
 void app_task_init()
