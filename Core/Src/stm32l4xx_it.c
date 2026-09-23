@@ -318,6 +318,7 @@ void OTG_FS_IRQHandler(void)
   */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+#if (CONFIG_MODULE_NETWORK_ENABLE == 1)
 #ifdef CONFIG_USE_LWIP_PORT_CH395Q
     if (GPIO_Pin == CH395_INT_Pin)
 #else
@@ -326,6 +327,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     {
         ethernetif_notify_rx();
     }
+#endif
+
 }
 
 /* USER CODE END 1 */

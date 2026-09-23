@@ -8,6 +8,7 @@
 
 #include "lvgl.h"
 #include "lv_port_indev.h"
+#include "img_home_icons.h"
 #include "string.h"
 #include "stdio.h"
 #include "main.h"
@@ -22,6 +23,7 @@ extern int8_t esp8266_get_weather(char *city, char *weather_buf);
  *  Screen objects
  * ==================================================================== */
 static lv_obj_t *scr_home;
+static lv_obj_t *scr_settings;
 static lv_obj_t *scr_time;
 static lv_obj_t *scr_weather;
 static lv_obj_t *scr_system;
@@ -30,6 +32,7 @@ static lv_obj_t *scr_system;
  *  Group objects (for keypad navigation)
  * ==================================================================== */
 static lv_group_t *group_home;
+static lv_group_t *group_settings;
 static lv_group_t *group_time;
 static lv_group_t *group_weather;
 static lv_group_t *group_system;
@@ -60,6 +63,7 @@ static char weather_buf[64];
 #define COLOR_ORANGE      lv_color_hex(0xEF6C00)
 #define COLOR_GREEN       lv_color_hex(0x2E7D32)
 #define COLOR_PURPLE      lv_color_hex(0x6A1B9A)
+#define COLOR_TEAL        lv_color_hex(0x00796B)
 #define COLOR_WHITE       lv_color_hex(0xFFFFFF)
 #define COLOR_BG          lv_color_hex(0xF0F2F5)
 #define COLOR_CARD        lv_color_hex(0xFFFFFF)
@@ -87,10 +91,16 @@ static void style_init(void)
  *  Forward declarations
  * ==================================================================== */
 static void create_home_page(void);
+static void create_settings_page(void);
 static void create_time_page(void);
 static void create_weather_page(void);
 static void create_system_page(void);
+static void ensure_settings_page(void);
+static void ensure_time_page(void);
+static void ensure_weather_page(void);
+static void ensure_system_page(void);
 static void back_home_cb(lv_event_t *e);
+static void back_settings_cb(lv_event_t *e);
 
 /* ====================================================================
  *  Helper: Switch group for keypad navigation
@@ -121,7 +131,7 @@ static void switch_group(lv_group_t *grp)
  *  @param grp     Group to add the back button to (can be NULL)
  * ==================================================================== */
 static lv_obj_t *create_title_bar(lv_obj_t *parent, const char *title,
-                                   lv_group_t *grp)
+                                   lv_group_t *grp, lv_event_cb_t back_cb)
 {
     lv_obj_t *bar = lv_obj_create(parent);
     lv_obj_set_size(bar, 240, 38);
@@ -138,7 +148,7 @@ static lv_obj_t *create_title_bar(lv_obj_t *parent, const char *title,
     lv_obj_set_style_bg_color(btn_back, COLOR_BLUE_DARK, LV_PART_MAIN);
     lv_obj_set_style_radius(btn_back, 4, LV_PART_MAIN);
     lv_obj_add_style(btn_back, &style_focus, LV_STATE_FOCUSED);
-    lv_obj_add_event_cb(btn_back, back_home_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(btn_back, back_cb, LV_EVENT_CLICKED, NULL);
 
     /* Add back button to group for key navigation */
     if (grp != NULL)
@@ -219,12 +229,21 @@ static void back_home_cb(lv_event_t *e)
     lv_scr_load_anim(scr_home, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 200, 0, false);
 }
 
+static void back_settings_cb(lv_event_t *e)
+{
+    (void)e;
+    ensure_settings_page();
+    switch_group(group_settings);
+    lv_scr_load_anim(scr_settings, LV_SCR_LOAD_ANIM_MOVE_RIGHT, 200, 0, false);
+}
+
 /* ====================================================================
  *  Menu button callbacks
  * ==================================================================== */
 static void menu_time_cb(lv_event_t *e)
 {
     (void)e;
+    ensure_time_page();
     switch_group(group_time);
     lv_scr_load_anim(scr_time, LV_SCR_LOAD_ANIM_MOVE_LEFT, 200, 0, false);
 }
@@ -232,6 +251,7 @@ static void menu_time_cb(lv_event_t *e)
 static void menu_weather_cb(lv_event_t *e)
 {
     (void)e;
+    ensure_weather_page();
     switch_group(group_weather);
     lv_scr_load_anim(scr_weather, LV_SCR_LOAD_ANIM_MOVE_LEFT, 200, 0, false);
 }
@@ -239,8 +259,17 @@ static void menu_weather_cb(lv_event_t *e)
 static void menu_system_cb(lv_event_t *e)
 {
     (void)e;
+    ensure_system_page();
     switch_group(group_system);
     lv_scr_load_anim(scr_system, LV_SCR_LOAD_ANIM_MOVE_LEFT, 200, 0, false);
+}
+
+static void menu_settings_cb(lv_event_t *e)
+{
+    (void)e;
+    ensure_settings_page();
+    switch_group(group_settings);
+    lv_scr_load_anim(scr_settings, LV_SCR_LOAD_ANIM_MOVE_LEFT, 200, 0, false);
 }
 
 /* ====================================================================
@@ -251,6 +280,11 @@ static void rtc_refresh_cb(lv_timer_t *timer)
     (void)timer;
     RTC_TimeTypeDef sTime = {0};
     RTC_DateTypeDef sDate = {0};
+
+    if (label_time_date == NULL || label_time_clock == NULL || label_time_weekday == NULL)
+    {
+        return;
+    }
 
     HAL_RTC_GetTime(&hrtc, &sTime, RTC_FORMAT_BIN);
     HAL_RTC_GetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
@@ -293,6 +327,11 @@ static void weather_refresh_cb(lv_timer_t *timer)
     (void)timer;
     int8_t ret;
 
+    if (label_weather_temp == NULL || label_weather_status == NULL)
+    {
+        return;
+    }
+
     /* Show spinner while loading */
     if (spinner_weather)
     {
@@ -332,42 +371,179 @@ static void weather_manual_refresh_cb(lv_event_t *e)
 /* ====================================================================
  *  HOME PAGE
  * ==================================================================== */
+#define HOME_ARC_SIZE       52
+#define HOME_CENTER_SIZE    64
+#define HOME_TITLE_H        32
+
+static lv_point_t home_line_pts[4][2];
+
+static void create_home_node(lv_obj_t *parent, lv_coord_t x, lv_coord_t y,
+                             lv_coord_t size, lv_color_t color,
+                             const void *icon, const char *value_text,
+                             int32_t percent)
+{
+    lv_obj_t *arc = lv_arc_create(parent);
+    lv_obj_set_size(arc, size, size);
+    lv_obj_set_pos(arc, x, y);
+    lv_arc_set_rotation(arc, 270);
+    lv_arc_set_bg_angles(arc, 0, 360);
+    lv_arc_set_range(arc, 0, 100);
+    lv_arc_set_value(arc, percent);
+    lv_obj_remove_style(arc, NULL, LV_PART_KNOB);
+    lv_obj_clear_flag(arc, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_arc_width(arc, 6, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(arc, 6, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(arc, lv_color_hex(0xE0E0E0), LV_PART_MAIN);
+    lv_obj_set_style_arc_color(arc, color, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(arc, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(arc, COLOR_CARD, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(arc, 8, LV_PART_MAIN);
+    lv_obj_set_style_radius(arc, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+
+    lv_obj_t *img = lv_img_create(arc);
+    lv_img_set_src(img, icon);
+    lv_obj_center(img);
+
+    if (value_text != NULL)
+    {
+        lv_obj_t *value = lv_label_create(parent);
+        lv_label_set_text(value, value_text);
+        lv_obj_set_width(value, size + 12);
+        lv_obj_set_style_text_align(value, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+        lv_obj_align_to(value, arc, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
+        lv_obj_set_style_text_color(value, COLOR_TEXT, LV_PART_MAIN);
+        lv_obj_set_style_text_font(value, &lv_font_montserrat_14, LV_PART_MAIN);
+    }
+}
+
+static void create_home_dash(lv_obj_t *parent, int idx,
+                             lv_coord_t x1, lv_coord_t y1,
+                             lv_coord_t x2, lv_coord_t y2)
+{
+    home_line_pts[idx][0].x = x1;
+    home_line_pts[idx][0].y = y1;
+    home_line_pts[idx][1].x = x2;
+    home_line_pts[idx][1].y = y2;
+
+    lv_obj_t *line = lv_line_create(parent);
+    lv_line_set_points(line, home_line_pts[idx], 2);
+    lv_obj_set_style_line_width(line, 2, LV_PART_MAIN);
+    lv_obj_set_style_line_color(line, lv_color_hex(0x90A4AE), LV_PART_MAIN);
+    lv_obj_set_style_line_dash_width(line, 1, LV_PART_MAIN);
+    lv_obj_set_style_line_dash_gap(line, 30, LV_PART_MAIN);
+    lv_obj_set_style_line_rounded(line, true, LV_PART_MAIN);
+}
+
 static void create_home_page(void)
 {
-    lv_obj_t *btn;
-
     scr_home = lv_obj_create(NULL);
+    lv_obj_clear_flag(scr_home, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_bg_color(scr_home, COLOR_BG, LV_PART_MAIN);
     lv_obj_set_style_pad_all(scr_home, 0, LV_PART_MAIN);
 
-    /* ---- Group for keypad navigation ---- */
     group_home = lv_group_create();
 
-    /* ---- Title bar ---- */
     lv_obj_t *title_bar = lv_obj_create(scr_home);
-    lv_obj_set_size(title_bar, 240, 50);
+    lv_obj_set_size(title_bar, 240, HOME_TITLE_H);
     lv_obj_align(title_bar, LV_ALIGN_TOP_MID, 0, 0);
+    lv_obj_clear_flag(title_bar, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_radius(title_bar, 0, LV_PART_MAIN);
     lv_obj_set_style_border_width(title_bar, 0, LV_PART_MAIN);
     lv_obj_set_style_bg_color(title_bar, COLOR_BLUE, LV_PART_MAIN);
     lv_obj_set_style_pad_all(title_bar, 0, LV_PART_MAIN);
 
-    /* App title icon + text */
     lv_obj_t *title_icon = lv_label_create(title_bar);
     lv_label_set_text(title_icon, LV_SYMBOL_HOME);
-    lv_obj_align(title_icon, LV_ALIGN_LEFT_MID, 12, 0);
+    lv_obj_align(title_icon, LV_ALIGN_LEFT_MID, 8, 0);
     lv_obj_set_style_text_color(title_icon, COLOR_WHITE, LV_PART_MAIN);
 
     lv_obj_t *title_label = lv_label_create(title_bar);
-    lv_label_set_text(title_label, "STM32L4 Menu");
-    lv_obj_align(title_label, LV_ALIGN_LEFT_MID, 40, 0);
+    lv_label_set_text(title_label, "EMS Home");
+    lv_obj_align(title_label, LV_ALIGN_LEFT_MID, 32, 0);
     lv_obj_set_style_text_color(title_label, COLOR_WHITE, LV_PART_MAIN);
-    lv_obj_set_style_text_font(title_label, &lv_font_montserrat_24, LV_PART_MAIN);
+    lv_obj_set_style_text_font(title_label, &lv_font_montserrat_14, LV_PART_MAIN);
 
-    /* ---- Menu button container (flex layout) ---- */
-    lv_obj_t *menu_cont = lv_obj_create(scr_home);
-    lv_obj_set_size(menu_cont, 240, 188);
-    lv_obj_align(menu_cont, LV_ALIGN_TOP_MID, 0, 52);
+    lv_obj_t *btn_settings = lv_btn_create(title_bar);
+    lv_obj_set_size(btn_settings, 32, 26);
+    lv_obj_align(btn_settings, LV_ALIGN_RIGHT_MID, -4, 0);
+    lv_obj_set_style_bg_color(btn_settings, COLOR_BLUE_DARK, LV_PART_MAIN);
+    lv_obj_set_style_radius(btn_settings, 6, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(btn_settings, 0, LV_PART_MAIN);
+    lv_obj_add_style(btn_settings, &style_focus, LV_STATE_FOCUSED);
+    lv_obj_add_event_cb(btn_settings, menu_settings_cb, LV_EVENT_CLICKED, NULL);
+    lv_group_add_obj(group_home, btn_settings);
+
+    lv_obj_t *settings_icon = lv_label_create(btn_settings);
+    lv_label_set_text(settings_icon, LV_SYMBOL_SETTINGS);
+    lv_obj_center(settings_icon);
+    lv_obj_set_style_text_color(settings_icon, COLOR_WHITE, LV_PART_MAIN);
+
+    lv_obj_t *stage = lv_obj_create(scr_home);
+    lv_obj_set_size(stage, 240, 240 - HOME_TITLE_H);
+    lv_obj_align(stage, LV_ALIGN_TOP_MID, 0, HOME_TITLE_H);
+    lv_obj_clear_flag(stage, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_color(stage, COLOR_BG, LV_PART_MAIN);
+    lv_obj_set_style_border_width(stage, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(stage, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(stage, 0, LV_PART_MAIN);
+
+    const lv_coord_t pv_x = 8;
+    const lv_coord_t pv_y = 4;
+    const lv_coord_t grid_x = 180;
+    const lv_coord_t grid_y = 4;
+    const lv_coord_t batt_x = 8;
+    const lv_coord_t batt_y = 136;
+    const lv_coord_t gen_x = 180;
+    const lv_coord_t gen_y = 136;
+    const lv_coord_t inv_x = 88;
+    const lv_coord_t inv_y = 70;
+
+    const lv_coord_t pv_cx = pv_x + HOME_ARC_SIZE / 2;
+    const lv_coord_t pv_cy = pv_y + HOME_ARC_SIZE / 2;
+    const lv_coord_t grid_cx = grid_x + HOME_ARC_SIZE / 2;
+    const lv_coord_t grid_cy = grid_y + HOME_ARC_SIZE / 2;
+    const lv_coord_t batt_cx = batt_x + HOME_ARC_SIZE / 2;
+    const lv_coord_t batt_cy = batt_y + HOME_ARC_SIZE / 2;
+    const lv_coord_t gen_cx = gen_x + HOME_ARC_SIZE / 2;
+    const lv_coord_t gen_cy = gen_y + HOME_ARC_SIZE / 2;
+    const lv_coord_t inv_cx = inv_x + HOME_CENTER_SIZE / 2;
+    const lv_coord_t inv_cy = inv_y + HOME_CENTER_SIZE / 2;
+
+    create_home_dash(stage, 0, pv_cx, pv_cy, inv_cx, inv_cy);
+    create_home_dash(stage, 1, grid_cx, grid_cy, inv_cx, inv_cy);
+    create_home_dash(stage, 2, batt_cx, batt_cy, inv_cx, inv_cy);
+    create_home_dash(stage, 3, gen_cx, gen_cy, inv_cx, inv_cy);
+
+    create_home_node(stage, pv_x, pv_y, HOME_ARC_SIZE, COLOR_ORANGE,
+                     &img_icon_pv, "PV 3.2kW", 64);
+    create_home_node(stage, grid_x, grid_y, HOME_ARC_SIZE, COLOR_BLUE,
+                     &img_icon_grid, "Grid 1.5kW", 30);
+    create_home_node(stage, batt_x, batt_y, HOME_ARC_SIZE, COLOR_GREEN,
+                     &img_icon_battery, "Batt 0.8kW", 80);
+    create_home_node(stage, gen_x, gen_y, HOME_ARC_SIZE, COLOR_PURPLE,
+                     &img_icon_generator, "Gen 0.0kW", 0);
+    create_home_node(stage, inv_x, inv_y, HOME_CENTER_SIZE, COLOR_TEAL,
+                     &img_icon_inverter, NULL, 50);
+}
+
+/* ====================================================================
+ *  SETTINGS PAGE
+ * ==================================================================== */
+static void create_settings_page(void)
+{
+    lv_obj_t *btn;
+
+    scr_settings = lv_obj_create(NULL);
+    lv_obj_clear_flag(scr_settings, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_color(scr_settings, COLOR_BG, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(scr_settings, 0, LV_PART_MAIN);
+
+    group_settings = lv_group_create();
+    create_title_bar(scr_settings, "Settings", group_settings, back_home_cb);
+
+    lv_obj_t *menu_cont = lv_obj_create(scr_settings);
+    lv_obj_set_size(menu_cont, 240, 202);
+    lv_obj_align(menu_cont, LV_ALIGN_TOP_MID, 0, 38);
     lv_obj_set_style_bg_color(menu_cont, COLOR_BG, LV_PART_MAIN);
     lv_obj_set_style_border_width(menu_cont, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(menu_cont, 0, LV_PART_MAIN);
@@ -377,20 +553,21 @@ static void create_home_page(void)
     lv_obj_set_style_pad_top(menu_cont, 4, LV_PART_MAIN);
     lv_obj_set_style_pad_bottom(menu_cont, 4, LV_PART_MAIN);
 
-    /* Menu items — add each to the home group */
     btn = create_menu_btn(menu_cont, LV_SYMBOL_SETTINGS, "  Time",
                           COLOR_BLUE, menu_time_cb);
-    lv_group_add_obj(group_home, btn);
+    lv_group_add_obj(group_settings, btn);
 
     btn = create_menu_btn(menu_cont, LV_SYMBOL_WIFI, "  Weather",
                           COLOR_ORANGE, menu_weather_cb);
-    lv_group_add_obj(group_home, btn);
+    lv_group_add_obj(group_settings, btn);
 
     btn = create_menu_btn(menu_cont, LV_SYMBOL_LIST, "  System Info",
                           COLOR_GREEN, menu_system_cb);
-    lv_group_add_obj(group_home, btn);
+    lv_group_add_obj(group_settings, btn);
 }
 
+/* ====================================================================
+ *  NTP time sync callback
 /* ====================================================================
  *  NTP time sync callback
  * ==================================================================== */
@@ -438,7 +615,7 @@ static void create_time_page(void)
     group_time = lv_group_create();
 
     /* Title bar (back button added to group internally) */
-    create_title_bar(scr_time, "Time", group_time);
+    create_title_bar(scr_time, "Time", group_time, back_settings_cb);
 
     /* ---- Content area ---- */
     lv_obj_t *cont = lv_obj_create(scr_time);
@@ -533,7 +710,7 @@ static void create_time_page(void)
     lv_obj_set_style_bg_color(btn_back2, COLOR_GRAY, LV_PART_MAIN);
     lv_obj_set_style_radius(btn_back2, 8, LV_PART_MAIN);
     lv_obj_add_style(btn_back2, &style_focus, LV_STATE_FOCUSED);
-    lv_obj_add_event_cb(btn_back2, back_home_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(btn_back2, back_settings_cb, LV_EVENT_CLICKED, NULL);
     lv_group_add_obj(group_time, btn_back2);
 
     lv_obj_t *back_label = lv_label_create(btn_back2);
@@ -556,7 +733,7 @@ static void create_weather_page(void)
     group_weather = lv_group_create();
 
     /* Title bar */
-    create_title_bar(scr_weather, "Weather", group_weather);
+    create_title_bar(scr_weather, "Weather", group_weather, back_settings_cb);
 
     /* ---- Content area ---- */
     lv_obj_t *cont = lv_obj_create(scr_weather);
@@ -643,7 +820,7 @@ static void create_system_page(void)
     group_system = lv_group_create();
 
     /* Title bar */
-    create_title_bar(scr_system, "System Info", group_system);
+    create_title_bar(scr_system, "System Info", group_system, back_settings_cb);
 
     /* ---- Content area ---- */
     lv_obj_t *cont = lv_obj_create(scr_system);
@@ -696,7 +873,7 @@ static void create_system_page(void)
     lv_obj_set_style_bg_color(btn_back2, COLOR_GRAY, LV_PART_MAIN);
     lv_obj_set_style_radius(btn_back2, 8, LV_PART_MAIN);
     lv_obj_add_style(btn_back2, &style_focus, LV_STATE_FOCUSED);
-    lv_obj_add_event_cb(btn_back2, back_home_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(btn_back2, back_settings_cb, LV_EVENT_CLICKED, NULL);
     lv_group_add_obj(group_system, btn_back2);
 
     lv_obj_t *back_label = lv_label_create(btn_back2);
@@ -710,36 +887,43 @@ static void create_system_page(void)
  *  Main entry: lv_user_app()
  *  Called once from lvgl_gui_task after LVGL and display/indev init
  * ==================================================================== */
+static void ensure_settings_page(void)
+{
+    if (scr_settings == NULL)
+    {
+        create_settings_page();
+    }
+}
+
+static void ensure_time_page(void)
+{
+    if (scr_time == NULL)
+    {
+        create_time_page();
+    }
+}
+
+static void ensure_weather_page(void)
+{
+    if (scr_weather == NULL)
+    {
+        create_weather_page();
+    }
+}
+
+static void ensure_system_page(void)
+{
+    if (scr_system == NULL)
+    {
+        create_system_page();
+    }
+}
+
 void lv_user_app(void)
 {
-    /* ---- Initialize styles ---- */
     style_init();
-
-    /* ---- Create all pages ---- */
     create_home_page();
-    create_time_page();
-    create_weather_page();
-    create_system_page();
-
-    /* ---- Load home page as initial screen ---- */
     lv_scr_load(scr_home);
-
-    /* ---- Assign home group to keypad ---- */
     switch_group(group_home);
-
-    /* ---- Start RTC refresh timer: every 1 second ---- */
     lv_timer_create(rtc_refresh_cb, 1000, NULL);
-
-    /*
-     * Start weather refresh timer: every 10 minutes (600000 ms).
-     * NOTE: For testing, use a shorter interval (e.g., 30000 = 30s).
-     *       Change to 600000 for production.
-     */
-    lv_timer_create(weather_refresh_cb, 600000, NULL);
-
-    /*
-     * Trigger an initial weather fetch immediately.
-     * Note: this will block for ~3 seconds during init.
-     */
-    weather_refresh_cb(NULL);
 }

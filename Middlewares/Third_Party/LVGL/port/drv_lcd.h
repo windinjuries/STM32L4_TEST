@@ -7,6 +7,7 @@
 
 int  lcd_init(void);
 void lcd_address_set(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
+void lcd_fill(uint16_t color);
 void lcd_fill_array(uint16_t x_start, uint16_t y_start, uint16_t x_end, uint16_t y_end, void *pcolor);
 
 #endif

@@ -51,22 +51,24 @@ void app_init()
 
 void app_task_init()
 {
-    osThreadStaticDef(tc214bTask, StartTC214BTask, osPriorityNormal, 0, 256, tc214bTaskBuffer, &tc214bTaskControlBlock);
-    tc214bTaskHandle = osThreadCreate(osThread(tc214bTask), NULL);
+    // osThreadStaticDef(tc214bTask, StartTC214BTask, osPriorityNormal, 0, 256, tc214bTaskBuffer, &tc214bTaskControlBlock);
+    // tc214bTaskHandle = osThreadCreate(osThread(tc214bTask), NULL);
 	
-    osThreadStaticDef(wifiTask, wifi_task, osPriorityNormal, 0, 512, wifiTaskBuffer, &wifiTaskControlBlock);
-    wifiTaskHandle = osThreadCreate(osThread(wifiTask), NULL);
+    // osThreadStaticDef(wifiTask, wifi_task, osPriorityNormal, 0, 512, wifiTaskBuffer, &wifiTaskControlBlock);
+    // wifiTaskHandle = osThreadCreate(osThread(wifiTask), NULL);
 
 #if (CONFIG_MODULE_LVGL_ENABLE == 1)
     osThreadStaticDef(lvglTask, lvgl_gui_task, osPriorityNormal, 0, 2048, lvglTaskBuffer, &lvglTaskControlBlock);
     lvglTaskHandle = osThreadCreate(osThread(lvglTask), NULL);
 #endif
 
-    osThreadStaticDef(modbusTask, modbus_task, osPriorityNormal, 0, 256, modbusTaskBuffer, &modbusTaskControlBlock);
-    modbusTaskHandle = osThreadCreate(osThread(modbusTask), NULL);
+    // osThreadStaticDef(modbusTask, modbus_task, osPriorityNormal, 0, 256, modbusTaskBuffer, &modbusTaskControlBlock);
+    // modbusTaskHandle = osThreadCreate(osThread(modbusTask), NULL);
 
+#if (CONFIG_MODULE_NETWORK_ENABLE == 1)
     osThreadStaticDef(netTask, net_task, osPriorityNormal, 0, 512, netTaskBuffer, &netTaskControlBlock);
     netTaskHandle = osThreadCreate(osThread(netTask), NULL);
+#endif
 
 }
 

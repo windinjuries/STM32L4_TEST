@@ -18,13 +18,11 @@
  *      DEFINES
  *********************/
 #ifndef MY_DISP_HOR_RES
-    #warning Please define or replace the macro MY_DISP_HOR_RES with the actual screen width, default value 320 is used for now.
-    #define MY_DISP_HOR_RES    320
+    #define MY_DISP_HOR_RES    LCD_W
 #endif
 
 #ifndef MY_DISP_VER_RES
-    #warning Please define or replace the macro MY_DISP_HOR_RES with the actual screen height, default value 240 is used for now.
-    #define MY_DISP_VER_RES    240
+    #define MY_DISP_VER_RES    LCD_H
 #endif
 
 /**********************
@@ -145,8 +143,21 @@ void disp_disable_update(void)
 static void disp_flush(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p)
 {
 
-    /* color_p is a buffer pointer; the buffer is provided by LVGL */
-    lcd_fill_array(area->x1, area->y1, area->x2, area->y2, color_p);
+    if(disp_flush_enabled) {
+        int32_t x1 = area->x1;
+        int32_t y1 = area->y1;
+        int32_t x2 = area->x2;
+        int32_t y2 = area->y2;
+
+        if(x1 < 0) x1 = 0;
+        if(y1 < 0) y1 = 0;
+        if(x2 >= MY_DISP_HOR_RES) x2 = MY_DISP_HOR_RES - 1;
+        if(y2 >= MY_DISP_VER_RES) y2 = MY_DISP_VER_RES - 1;
+
+        if(x2 >= x1 && y2 >= y1) {
+            lcd_fill_array((uint16_t)x1, (uint16_t)y1, (uint16_t)x2, (uint16_t)y2, color_p);
+        }
+    }
 
     /*IMPORTANT!!!
      *Inform the graphics library that you are ready with the flushing*/

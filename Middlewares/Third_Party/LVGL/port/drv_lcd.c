@@ -17,15 +17,22 @@ extern TIM_HandleTypeDef htim3;
 #define LCD_CS_LOW()     HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_RESET);
 #define LCD_CS_HIGH()    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_7, GPIO_PIN_SET);
 
-static int spi_transmit(uint8_t *data, uint16_t size)
-{   
+static int spi_transmit(uint8_t *data, uint32_t size)
+{
     LCD_CS_LOW();
-    if (HAL_SPI_Transmit(&hspi3, data, size, HAL_MAX_DELAY) != HAL_OK)
+    while (size > 0)
     {
-        return -1;
+        uint16_t chunk = (size > 0xFFF0U) ? 0xFFF0U : (uint16_t)size;
+        if (HAL_SPI_Transmit(&hspi3, data, chunk, HAL_MAX_DELAY) != HAL_OK)
+        {
+            LCD_CS_HIGH();
+            return -1;
+        }
+        data += chunk;
+        size -= chunk;
     }
     LCD_CS_HIGH();
-    return size;
+    return 0;
 }
 
 // static int spi_receive(uint8_t *data, uint16_t size)
@@ -45,7 +52,7 @@ static int lcd_write_cmd(const uint8_t cmd)
 
     LCD_DC_LOW();
     len = spi_transmit((uint8_t *)&cmd, 1);
-    if (len != 1)
+    if (len != 0)
     {
         return -1;
     }
@@ -60,7 +67,7 @@ static int lcd_write_data(const uint8_t data)
     uint32_t len;
     LCD_DC_HIGH();
     len = spi_transmit((uint8_t *)&data, 1);
-    if (len != 1)
+    if (len != 0)
     {
         return -1;
     }
@@ -184,6 +191,7 @@ int lcd_init(void)
      osDelay(100); 
 
     lcd_write_cmd(0x29);
+    lcd_fill(0x0000);
 
     return 0;
 }
@@ -227,11 +235,34 @@ void lcd_address_set(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
  *
  * @return  void
  */
+void lcd_fill(uint16_t color)
+{
+    uint16_t row[LCD_W];
+    uint32_t y;
+
+    for (y = 0; y < LCD_W; y++)
+    {
+        row[y] = color;
+    }
+
+    lcd_address_set(0, 0, LCD_W - 1, LCD_H - 1);
+    LCD_DC_HIGH();
+    LCD_CS_LOW();
+    for (y = 0; y < LCD_H; y++)
+    {
+        if (HAL_SPI_Transmit(&hspi3, (uint8_t *)row, sizeof(row), HAL_MAX_DELAY) != HAL_OK)
+        {
+            break;
+        }
+    }
+    LCD_CS_HIGH();
+}
+
 void lcd_fill_array(uint16_t x_start, uint16_t y_start, uint16_t x_end, uint16_t y_end, void *pcolor)
 {
-    uint32_t size = 0;
+    uint32_t size;
 
-    size = (x_end - x_start + 1) * (y_end - y_start + 1) * 2/*16bit*/;
+    size = (uint32_t)(x_end - x_start + 1) * (uint32_t)(y_end - y_start + 1) * 2U;
     lcd_address_set(x_start, y_start, x_end, y_end);
     LCD_DC_HIGH();
     spi_transmit(pcolor, size);

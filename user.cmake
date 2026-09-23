@@ -96,6 +96,7 @@ set(USER_SOURCES_LVGL
     Middlewares/Third_Party/LVGL/app/lv_gui.c
     Middlewares/Third_Party/LVGL/app/lv_demo_stress.c
     Middlewares/Third_Party/LVGL/app/lv_app.c
+    Middlewares/Third_Party/LVGL/app/assets/img_home_icons.c
 )
 
 set(USER_SOURCES_SEGGER_RTT
@@ -136,6 +137,7 @@ set(USER_INCLUDES
     Middlewares/Third_Party/FreeMaster/src/platforms/gen32le
     Middlewares/Third_Party/LVGL/port
     Middlewares/Third_Party/LVGL/app
+    Middlewares/Third_Party/LVGL/app/assets
     Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src
     Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core
     Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/draw
