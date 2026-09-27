@@ -12,6 +12,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "main.h"
+#include "host_system_info.h"
 
 /* ====================================================================
  *  External symbols
@@ -22,6 +23,7 @@ extern int8_t esp8266_get_weather(char *city, char *weather_buf);
 /* ====================================================================
  *  Screen objects
  * ==================================================================== */
+static lv_obj_t *scr_boot;
 static lv_obj_t *scr_home;
 static lv_obj_t *scr_settings;
 static lv_obj_t *scr_time;
@@ -54,6 +56,14 @@ static lv_obj_t *label_weather_temp;
 static lv_obj_t *label_weather_status;
 static lv_obj_t *spinner_weather;
 static char weather_buf[64];
+
+/* ====================================================================
+ *  Home page widgets fed by the USB system-information sender
+ * ==================================================================== */
+static lv_obj_t *label_home_cpu;
+static lv_obj_t *label_home_memory;
+static lv_obj_t *label_home_time;
+static lv_obj_t *label_home_status;
 
 /* ====================================================================
  *  Color palette
@@ -368,6 +378,55 @@ static void weather_manual_refresh_cb(lv_event_t *e)
     weather_refresh_cb(NULL);
 }
 
+static void host_info_refresh_cb(lv_timer_t *timer)
+{
+    host_system_info_t info;
+    char text[40];
+    int cpu_tenths;
+    int memory_tenths;
+    uint32_t age_ms;
+
+    (void)timer;
+    (void)host_system_info_process();
+
+    if (label_home_cpu == NULL || label_home_memory == NULL ||
+        label_home_time == NULL || label_home_status == NULL)
+    {
+        return;
+    }
+
+    if (!host_system_info_get(&info))
+    {
+        lv_label_set_text(label_home_cpu, "--.-%");
+        lv_label_set_text(label_home_memory, "--.-%");
+        lv_label_set_text(label_home_time, "---- --:--:--");
+        lv_label_set_text(label_home_status, "Waiting for USB data...");
+        lv_obj_set_style_text_color(label_home_status, COLOR_GRAY, LV_PART_MAIN);
+        return;
+    }
+
+    cpu_tenths = (int)(info.cpu_percent * 10.0f + 0.5f);
+    memory_tenths = (int)(info.memory_percent * 10.0f + 0.5f);
+    snprintf(text, sizeof(text), "%d.%d%%", cpu_tenths / 10, cpu_tenths % 10);
+    lv_label_set_text(label_home_cpu, text);
+    snprintf(text, sizeof(text), "%d.%d%%", memory_tenths / 10, memory_tenths % 10);
+    lv_label_set_text(label_home_memory, text);
+    snprintf(text, sizeof(text), "%s", info.time);
+    lv_label_set_text(label_home_time, text);
+
+    age_ms = host_system_info_age_ms();
+    if (age_ms <= 5000U)
+    {
+        lv_label_set_text(label_home_status, "USB connected");
+        lv_obj_set_style_text_color(label_home_status, COLOR_GREEN, LV_PART_MAIN);
+    }
+    else
+    {
+        lv_label_set_text(label_home_status, "USB data stale");
+        lv_obj_set_style_text_color(label_home_status, COLOR_ORANGE, LV_PART_MAIN);
+    }
+}
+
 /* ====================================================================
  *  HOME PAGE
  * ==================================================================== */
@@ -375,63 +434,34 @@ static void weather_manual_refresh_cb(lv_event_t *e)
 #define HOME_CENTER_SIZE    64
 #define HOME_TITLE_H        32
 
-static lv_point_t home_line_pts[4][2];
-
-static void create_home_node(lv_obj_t *parent, lv_coord_t x, lv_coord_t y,
-                             lv_coord_t size, lv_color_t color,
-                             const void *icon, const char *value_text,
-                             int32_t percent)
+static lv_obj_t *create_home_info_row(lv_obj_t *parent, const char *caption,
+                                      const char *initial_text,
+                                      lv_obj_t **value_label, lv_coord_t y)
 {
-    lv_obj_t *arc = lv_arc_create(parent);
-    lv_obj_set_size(arc, size, size);
-    lv_obj_set_pos(arc, x, y);
-    lv_arc_set_rotation(arc, 270);
-    lv_arc_set_bg_angles(arc, 0, 360);
-    lv_arc_set_range(arc, 0, 100);
-    lv_arc_set_value(arc, percent);
-    lv_obj_remove_style(arc, NULL, LV_PART_KNOB);
-    lv_obj_clear_flag(arc, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_style_arc_width(arc, 6, LV_PART_MAIN);
-    lv_obj_set_style_arc_width(arc, 6, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_color(arc, lv_color_hex(0xE0E0E0), LV_PART_MAIN);
-    lv_obj_set_style_arc_color(arc, color, LV_PART_INDICATOR);
-    lv_obj_set_style_bg_opa(arc, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(arc, COLOR_CARD, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(arc, 8, LV_PART_MAIN);
-    lv_obj_set_style_radius(arc, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    lv_obj_t *row = lv_obj_create(parent);
+    lv_obj_set_size(row, 204, 38);
+    lv_obj_set_pos(row, 8, y);
+    lv_obj_set_style_bg_color(row, COLOR_BG, LV_PART_MAIN);
+    lv_obj_set_style_border_width(row, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(row, 6, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(row, 0, LV_PART_MAIN);
 
-    lv_obj_t *img = lv_img_create(arc);
-    lv_img_set_src(img, icon);
-    lv_obj_center(img);
+    lv_obj_t *caption_label = lv_label_create(row);
+    lv_label_set_text(caption_label, caption);
+    lv_obj_align(caption_label, LV_ALIGN_LEFT_MID, 10, 0);
+    lv_obj_set_style_text_color(caption_label, COLOR_TEXT, LV_PART_MAIN);
+    lv_obj_set_style_text_font(caption_label, &lv_font_montserrat_14, LV_PART_MAIN);
 
-    if (value_text != NULL)
-    {
-        lv_obj_t *value = lv_label_create(parent);
-        lv_label_set_text(value, value_text);
-        lv_obj_set_width(value, size + 12);
-        lv_obj_set_style_text_align(value, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-        lv_obj_align_to(value, arc, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
-        lv_obj_set_style_text_color(value, COLOR_TEXT, LV_PART_MAIN);
-        lv_obj_set_style_text_font(value, &lv_font_montserrat_14, LV_PART_MAIN);
-    }
-}
+    *value_label = lv_label_create(row);
+    lv_label_set_text(*value_label, initial_text);
+    lv_obj_set_width(*value_label, 145);
+    lv_label_set_long_mode(*value_label, LV_LABEL_LONG_DOT);
+    lv_obj_align(*value_label, LV_ALIGN_RIGHT_MID, -8, 0);
+    lv_obj_set_style_text_align(*value_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+    lv_obj_set_style_text_color(*value_label, COLOR_BLUE_DARK, LV_PART_MAIN);
+    lv_obj_set_style_text_font(*value_label, &lv_font_montserrat_14, LV_PART_MAIN);
 
-static void create_home_dash(lv_obj_t *parent, int idx,
-                             lv_coord_t x1, lv_coord_t y1,
-                             lv_coord_t x2, lv_coord_t y2)
-{
-    home_line_pts[idx][0].x = x1;
-    home_line_pts[idx][0].y = y1;
-    home_line_pts[idx][1].x = x2;
-    home_line_pts[idx][1].y = y2;
-
-    lv_obj_t *line = lv_line_create(parent);
-    lv_line_set_points(line, home_line_pts[idx], 2);
-    lv_obj_set_style_line_width(line, 2, LV_PART_MAIN);
-    lv_obj_set_style_line_color(line, lv_color_hex(0x90A4AE), LV_PART_MAIN);
-    lv_obj_set_style_line_dash_width(line, 1, LV_PART_MAIN);
-    lv_obj_set_style_line_dash_gap(line, 30, LV_PART_MAIN);
-    lv_obj_set_style_line_rounded(line, true, LV_PART_MAIN);
+    return row;
 }
 
 static void create_home_page(void)
@@ -458,13 +488,13 @@ static void create_home_page(void)
     lv_obj_set_style_text_color(title_icon, COLOR_WHITE, LV_PART_MAIN);
 
     lv_obj_t *title_label = lv_label_create(title_bar);
-    lv_label_set_text(title_label, "EMS Home");
+    lv_label_set_text(title_label, "Home");
     lv_obj_align(title_label, LV_ALIGN_LEFT_MID, 32, 0);
     lv_obj_set_style_text_color(title_label, COLOR_WHITE, LV_PART_MAIN);
     lv_obj_set_style_text_font(title_label, &lv_font_montserrat_14, LV_PART_MAIN);
 
     lv_obj_t *btn_settings = lv_btn_create(title_bar);
-    lv_obj_set_size(btn_settings, 32, 26);
+    lv_obj_set_size(btn_settings, 26, 26);
     lv_obj_align(btn_settings, LV_ALIGN_RIGHT_MID, -4, 0);
     lv_obj_set_style_bg_color(btn_settings, COLOR_BLUE_DARK, LV_PART_MAIN);
     lv_obj_set_style_radius(btn_settings, 6, LV_PART_MAIN);
@@ -487,43 +517,34 @@ static void create_home_page(void)
     lv_obj_set_style_pad_all(stage, 0, LV_PART_MAIN);
     lv_obj_set_style_radius(stage, 0, LV_PART_MAIN);
 
-    const lv_coord_t pv_x = 8;
-    const lv_coord_t pv_y = 4;
-    const lv_coord_t grid_x = 180;
-    const lv_coord_t grid_y = 4;
-    const lv_coord_t batt_x = 8;
-    const lv_coord_t batt_y = 136;
-    const lv_coord_t gen_x = 180;
-    const lv_coord_t gen_y = 136;
-    const lv_coord_t inv_x = 88;
-    const lv_coord_t inv_y = 70;
+    lv_obj_t *info_card = lv_obj_create(stage);
+    lv_obj_set_size(info_card, 220, 164);
+    lv_obj_align(info_card, LV_ALIGN_TOP_MID, 0, 6);
+    lv_obj_set_style_bg_color(info_card, COLOR_CARD, LV_PART_MAIN);
+    lv_obj_set_style_radius(info_card, 10, LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(info_card, 2, LV_PART_MAIN);
+    lv_obj_set_style_shadow_ofs_y(info_card, 1, LV_PART_MAIN);
+    lv_obj_set_style_border_width(info_card, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(info_card, 0, LV_PART_MAIN);
 
-    const lv_coord_t pv_cx = pv_x + HOME_ARC_SIZE / 2;
-    const lv_coord_t pv_cy = pv_y + HOME_ARC_SIZE / 2;
-    const lv_coord_t grid_cx = grid_x + HOME_ARC_SIZE / 2;
-    const lv_coord_t grid_cy = grid_y + HOME_ARC_SIZE / 2;
-    const lv_coord_t batt_cx = batt_x + HOME_ARC_SIZE / 2;
-    const lv_coord_t batt_cy = batt_y + HOME_ARC_SIZE / 2;
-    const lv_coord_t gen_cx = gen_x + HOME_ARC_SIZE / 2;
-    const lv_coord_t gen_cy = gen_y + HOME_ARC_SIZE / 2;
-    const lv_coord_t inv_cx = inv_x + HOME_CENTER_SIZE / 2;
-    const lv_coord_t inv_cy = inv_y + HOME_CENTER_SIZE / 2;
+    lv_obj_t *info_title = lv_label_create(info_card);
+    lv_label_set_text(info_title, "System Info");
+    lv_obj_align(info_title, LV_ALIGN_TOP_LEFT, 10, 7);
+    lv_obj_set_style_text_color(info_title, COLOR_TEXT, LV_PART_MAIN);
+    lv_obj_set_style_text_font(info_title, &lv_font_montserrat_20, LV_PART_MAIN);
 
-    create_home_dash(stage, 0, pv_cx, pv_cy, inv_cx, inv_cy);
-    create_home_dash(stage, 1, grid_cx, grid_cy, inv_cx, inv_cy);
-    create_home_dash(stage, 2, batt_cx, batt_cy, inv_cx, inv_cy);
-    create_home_dash(stage, 3, gen_cx, gen_cy, inv_cx, inv_cy);
+    create_home_info_row(info_card, "CPU", "--.-%", &label_home_cpu, 30);
+    create_home_info_row(info_card, "Memory", "--.-%", &label_home_memory, 72);
+    create_home_info_row(info_card, "Time", "---- --:--:--", &label_home_time, 114);
 
-    create_home_node(stage, pv_x, pv_y, HOME_ARC_SIZE, COLOR_ORANGE,
-                     &img_icon_pv, "PV 3.2kW", 64);
-    create_home_node(stage, grid_x, grid_y, HOME_ARC_SIZE, COLOR_BLUE,
-                     &img_icon_grid, "Grid 1.5kW", 30);
-    create_home_node(stage, batt_x, batt_y, HOME_ARC_SIZE, COLOR_GREEN,
-                     &img_icon_battery, "Batt 0.8kW", 80);
-    create_home_node(stage, gen_x, gen_y, HOME_ARC_SIZE, COLOR_PURPLE,
-                     &img_icon_generator, "Gen 0.0kW", 0);
-    create_home_node(stage, inv_x, inv_y, HOME_CENTER_SIZE, COLOR_TEAL,
-                     &img_icon_inverter, NULL, 50);
+    label_home_status = lv_label_create(stage);
+    lv_label_set_text(label_home_status, "Waiting for USB data...");
+    lv_obj_align(label_home_status, LV_ALIGN_TOP_MID, 0, 176);
+    lv_obj_set_style_text_align(label_home_status, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_set_style_text_color(label_home_status, COLOR_GRAY, LV_PART_MAIN);
+    lv_obj_set_style_text_font(label_home_status, &lv_font_montserrat_14, LV_PART_MAIN);
+
+
 }
 
 /* ====================================================================
@@ -566,8 +587,6 @@ static void create_settings_page(void)
     lv_group_add_obj(group_settings, btn);
 }
 
-/* ====================================================================
- *  NTP time sync callback
 /* ====================================================================
  *  NTP time sync callback
  * ==================================================================== */
@@ -919,11 +938,28 @@ static void ensure_system_page(void)
     }
 }
 
+void create_boot_screen(void)
+{
+    scr_boot = lv_obj_create(NULL);
+
+    lv_obj_t * img = lv_img_create(scr_boot);
+    lv_img_set_src(img, &img_logo);
+    lv_obj_center(img);
+
+    lv_obj_t * label = lv_label_create(scr_boot);
+    lv_label_set_text(label, "Booting...");
+    lv_obj_set_style_text_color(label, lv_color_white(), 0);
+    lv_obj_align(label, LV_ALIGN_BOTTOM_MID, 0, -20);
+}
+
 void lv_user_app(void)
 {
     style_init();
+    create_boot_screen();
+    lv_scr_load(scr_boot);
+
     create_home_page();
-    lv_scr_load(scr_home);
-    switch_group(group_home);
+    lv_scr_load_anim(scr_home, LV_SCR_LOAD_ANIM_FADE_ON, 300, 2000, true);
     lv_timer_create(rtc_refresh_cb, 1000, NULL);
+    lv_timer_create(host_info_refresh_cb, 500, NULL);
 }

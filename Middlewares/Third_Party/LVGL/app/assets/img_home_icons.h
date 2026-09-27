@@ -12,6 +12,7 @@ LV_IMG_DECLARE(img_icon_grid);
 LV_IMG_DECLARE(img_icon_battery);
 LV_IMG_DECLARE(img_icon_generator);
 LV_IMG_DECLARE(img_icon_inverter);
+LV_IMG_DECLARE(img_logo);
 
 #ifdef __cplusplus
 }

@@ -23,11 +23,14 @@
 #include "usb_device.h"
 #include "usbd_core.h"
 #include "usbd_desc.h"
-#include "usbd_cdc.h"
-#include "usbd_cdc_if.h"
+#include "usbd_audio.h"
+#include "usbd_audio_if.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "config.h"
+#if (CONFIG_USE_FREEMASTER == 0)
+#include "debug_log.h"
+#endif
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN PV */
@@ -48,7 +51,7 @@ extern USBD_DescriptorsTypeDef FS_Desc;
  * -- Insert your variables declaration here --
  */
 /* USER CODE BEGIN 0 */
-
+extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
 /* USER CODE END 0 */
 
 /*
@@ -73,11 +76,11 @@ void MX_USB_DEVICE_Init(void)
   {
     Error_Handler();
   }
-  if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_CDC) != USBD_OK)
+  if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_AUDIO) != USBD_OK)
   {
     Error_Handler();
   }
-  if (USBD_CDC_RegisterInterface(&hUsbDeviceFS, &USBD_Interface_fops_FS) != USBD_OK)
+  if (USBD_AUDIO_RegisterInterface(&hUsbDeviceFS, &USBD_AUDIO_fops_FS) != USBD_OK)
   {
     Error_Handler();
   }
@@ -86,7 +89,18 @@ void MX_USB_DEVICE_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USB_DEVICE_Init_PostTreatment */
-
+  hpcd_USB_OTG_FS.Init.Sof_enable = ENABLE;
+  USB_OTG_FS->GINTMSK |= USB_OTG_GINTMSK_SOFM;
+#if (CONFIG_USE_FREEMASTER == 0)
+  if ((USB_OTG_FS->GINTMSK & USB_OTG_GINTMSK_SOFM) == 0U)
+  {
+    LOG_ERROR("USB SOF interrupt enable failed");
+  }
+  else
+  {
+    LOG_INFO("USB Audio device started: 44100 Hz, SOF enabled");
+  }
+#endif
   /* USER CODE END USB_DEVICE_Init_PostTreatment */
 }
 

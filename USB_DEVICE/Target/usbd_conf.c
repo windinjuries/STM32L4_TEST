@@ -23,7 +23,7 @@
 #include "stm32l4xx_hal.h"
 #include "usbd_def.h"
 #include "usbd_core.h"
-#include "usbd_cdc.h"
+#include "usbd_audio.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -80,11 +80,11 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
   */
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
     PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLLSAI1;
-    PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_MSI;
+    PeriphClkInit.PLLSAI1.PLLSAI1Source = RCC_PLLSOURCE_HSE;
     PeriphClkInit.PLLSAI1.PLLSAI1M = 1;
     PeriphClkInit.PLLSAI1.PLLSAI1N = 24;
     PeriphClkInit.PLLSAI1.PLLSAI1P = RCC_PLLP_DIV7;
-    PeriphClkInit.PLLSAI1.PLLSAI1Q = RCC_PLLQ_DIV2;
+    PeriphClkInit.PLLSAI1.PLLSAI1Q = RCC_PLLQ_DIV4;
     PeriphClkInit.PLLSAI1.PLLSAI1R = RCC_PLLR_DIV2;
     PeriphClkInit.PLLSAI1.PLLSAI1ClockOut = RCC_PLLSAI1_48M2CLK;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
@@ -860,7 +860,17 @@ void USBD_LL_Delay(uint32_t Delay)
   */
 void *USBD_static_malloc(uint32_t size)
 {
-  static uint32_t mem[(sizeof(USBD_CDC_HandleTypeDef)/4)+1];/* On 32-bit boundary */
+  static uint8_t mem[sizeof(USBD_AUDIO_HandleTypeDef)];
+  /* USER CODE BEGIN 4 */
+  /**
+  * To compute the request size you must use the formula:
+    AUDIO_OUT_PACKET = (USBD_AUDIO_FREQ * 2 * 2) /1000)
+    AUDIO_TOTAL_BUF_SIZE = AUDIO_OUT_PACKET * AUDIO_OUT_PACKET_NUM with
+	Number of sub-packets in the audio transfer buffer. You can modify this value but always make sure
+    that it is an even number and higher than 3
+	AUDIO_OUT_PACKET_NUM = 80
+  */
+  /* USER CODE END 4 */
   return mem;
 }
 

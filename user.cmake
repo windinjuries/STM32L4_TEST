@@ -108,8 +108,10 @@ set(USER_SOURCES_APP
     BSP/bsp_flash.c
     APP/esp8266_wifi.c
     APP/dc_control.c
+    APP/es8388.c
     App/storage.c
     App/app_main.c
+    APP/host_system_info.c
     APP/modbus.c
     APP/net_init.c
     APP/tcp_client_demo.c
@@ -158,3 +160,28 @@ set(USER_COMPILE_DEFINITIONS
 
 set(USER_LINK_LIBRARIES
 )
+
+set(CUSTOM_USB_AUDIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/Custom/USB_Audio)
+set(CUSTOM_USB_AUDIO_INC ${CUSTOM_USB_AUDIO_DIR}/Inc)
+set(CUSTOM_USB_AUDIO_SRC ${CUSTOM_USB_AUDIO_DIR}/Src/usbd_audio.c)
+set(CUSTOM_USB_DESC_SRC ${CUSTOM_USB_AUDIO_DIR}/Src/usbd_desc.c)
+
+if(TARGET USB_Device_Library)
+    get_target_property(_usb_audio_sources USB_Device_Library SOURCES)
+    if(_usb_audio_sources)
+        list(FILTER _usb_audio_sources EXCLUDE REGEX "usbd_audio\\.c$")
+        list(APPEND _usb_audio_sources ${CUSTOM_USB_AUDIO_SRC})
+        set_property(TARGET USB_Device_Library PROPERTY SOURCES ${_usb_audio_sources})
+    endif()
+    target_include_directories(USB_Device_Library BEFORE PRIVATE ${CUSTOM_USB_AUDIO_INC})
+endif()
+
+get_target_property(_application_sources ${CMAKE_PROJECT_NAME} SOURCES)
+if(_application_sources)
+    list(FILTER _application_sources EXCLUDE REGEX "USB_DEVICE/App/usbd_desc\\.c$")
+    list(APPEND _application_sources ${CUSTOM_USB_DESC_SRC})
+    set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY SOURCES ${_application_sources})
+endif()
+
+target_include_directories(stm32cubemx BEFORE INTERFACE ${CUSTOM_USB_AUDIO_INC})
+set(USER_INCLUDES ${CUSTOM_USB_AUDIO_INC} ${USER_INCLUDES})

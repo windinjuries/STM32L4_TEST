@@ -14,6 +14,9 @@
 #include "bsp_flash.h"
 #include "modbus.h"
 #include "app_main.h"
+#include "es8388.h"
+
+extern I2C_HandleTypeDef hi2c3;
 
 osThreadId tc214bTaskHandle;
 uint32_t tc214bTaskBuffer[ 256 ];
@@ -35,6 +38,8 @@ osThreadId netTaskHandle;
 uint32_t netTaskBuffer[ 512 ];
 osStaticThreadDef_t netTaskControlBlock;
 
+const char test_string1[] = "123456";
+char * test_string2 = "123456";
 void app_init()
 {
 #if (CONFIG_USE_FREEMASTER == 1)
@@ -42,7 +47,17 @@ void app_init()
 #else
     log_init();
 #endif
-    param_storage_init();
+    LOG_DEBUG(test_string1);
+    LOG_DEBUG(test_string2);
+    HAL_StatusTypeDef es8388_status = ES8388_Init(&hi2c3);
+    if (es8388_status != HAL_OK)
+    {
+#if (CONFIG_USE_FREEMASTER == 0)
+        LOG_ERROR("ES8388 initialization failed, HAL status=%lu",
+                  (unsigned long)es8388_status);
+#endif
+    }
+    // param_storage_init();
     modbus_init();
 #if (CONFIG_USE_FREEMASTER == 0)
     LOG_INFO("System initialized, starting tasks...");
