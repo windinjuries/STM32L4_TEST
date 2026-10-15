@@ -172,6 +172,10 @@ static void lv_port_indev_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
     static uint8_t  key1_down_cycles  = 0;
     static bool     key1_enter_sent   = false;
 
+    (void)key1_press_start;
+    (void)key1_down_cycles;
+    (void)key1_enter_sent;
+
     /*
      * Read all four buttons.
      * WAKE_UP:  active-HIGH → pressed when pin reads HIGH

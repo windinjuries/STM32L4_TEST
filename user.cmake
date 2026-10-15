@@ -1,4 +1,70 @@
 # user.cmake - 定义用户变量
+#
+# ============================================================================
+# USB 栈说明（重要）
+# ----------------------------------------------------------------------------
+# USB 已从 TEST.ioc 中移除，CubeMX 不再生成任何 USB 代码。以下三处由本仓库
+# 自行维护，全部通过本文件挂载到构建系统：
+#
+#   1. Middlewares/ST/STM32_USB_Device_Library/   官方 ST USB 设备库（零修改）
+#   2. Middlewares/Custom/USB_Audio/              自定义 ES8388 麦克风 Audio 类
+#   3. USB_DEVICE/                                USB 应用层与底层驱动
+#
+# 注意：官方库自带 Class/AUDIO（USB Speaker/播放方向，无麦克风能力），本工程
+#       不使用它，A4 处的 FILTER 将其排除，Audio 类由自定义实现提供。
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# 官方 USB 设备库根目录与源码（递归收集，便于日后追加类；未激活的类由
+# CompositeBuilder 的 #if USBD_CMPSIT_ACTIVATE_* 守卫自行排除编译）
+# ---------------------------------------------------------------------------
+set(USB_DEVICE_LIBRARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library)
+
+# Only the modules that are actually compiled are collected here:
+#   Core              - USBD core
+#   CompositeBuilder  - descriptor/endpoint assembler (uses USBD_CMPSIT_ACTIVATE_*)
+#   CDC               - virtual COM port (activated below)
+#
+# The vendor library ships ten more classes (HID, MSC, DFU, VIDEO, CCID, MTP,
+# Printer, BillBoard, CDC_ECM, CDC_RNDIS). They are all guarded by
+# USBD_CMPSIT_ACTIVATE_* and compile to nothing, but collecting their sources
+# here also requires adding each one's Inc directory, otherwise they fail with
+# "usbd_xxx.h: No such file or directory". They are therefore left out; to add
+# one later, append its Src and Inc paths here and set its ACTIVATE macro in
+# USB_COMPOSITE_DEFINITIONS.
+file(GLOB_RECURSE USB_DEVICE_LIBRARY_SOURCES
+    ${USB_DEVICE_LIBRARY_DIR}/Core/Src/*.c
+    ${USB_DEVICE_LIBRARY_DIR}/Class/CompositeBuilder/Src/*.c
+    ${USB_DEVICE_LIBRARY_DIR}/Class/CDC/Src/*.c
+)
+
+# ST ships every class with example/porting scaffolding named *_template.c
+# (usbd_conf_template.c, usbd_desc_template.c, usbd_cdc_if_template.c, ...).
+# They are NOT part of the library build: each one references project specific
+# functions (e.g. hUsbDeviceFS, USBD_CDC_Template_fops) and would either fail
+# to link or collide with the real implementation. Drop them all.
+list(FILTER USB_DEVICE_LIBRARY_SOURCES EXCLUDE REGEX "_template\\.c$")
+
+# 官方库包含路径（Class/AUDIO 不含在内：使用自定义实现）
+set(USB_DEVICE_LIBRARY_INCLUDES
+    ${USB_DEVICE_LIBRARY_DIR}/Core/Inc
+    ${USB_DEVICE_LIBRARY_DIR}/Class/CompositeBuilder/Inc
+    ${USB_DEVICE_LIBRARY_DIR}/Class/CDC/Inc
+)
+
+# ---------------------------------------------------------------------------
+# USB 应用层与底层驱动（原由 CubeMX 生成，现由本仓库维护）
+# ---------------------------------------------------------------------------
+set(USB_APP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/USB_DEVICE)
+set(USB_APP_SOURCES
+    ${USB_APP_DIR}/Target/usbd_conf.c
+    ${USB_APP_DIR}/App/usb_device.c
+    ${USB_APP_DIR}/App/usbd_desc.c
+    ${USB_APP_DIR}/App/usbd_audio_if.c
+    ${USB_APP_DIR}/App/usbd_cdc_if.c
+)
+# Guard against ever pulling in an ST *_template.c sample through this list.
+list(FILTER USB_APP_SOURCES EXCLUDE REGEX "_template\\.c$")
 
 file(GLOB_RECURSE LVGL_CORE_SOURCES
     Middlewares/Third_Party/LVGL/lvgl-release-v8.3/src/core/*.c
@@ -153,35 +219,105 @@ set(USER_INCLUDES
     Middlewares/Third_Party/SeggerRTT
 )
 
+# ---------------------------------------------------------------------------
+# USB 复合设备编译定义
+# 必须同时作用于两个目标：
+#   - 主工程 target（usb_device.c / usbd_cdc_if.c / usbd_audio_if.c）
+#   - USB_Device_Library OBJECT 库（官方 Core + CompositeBuilder + CDC +
+#     自定义 Audio），它不会继承主 target 的 USER_COMPILE_DEFINITIONS
+# ---------------------------------------------------------------------------
+set(USB_COMPOSITE_DEFINITIONS
+    # USE_USBD_COMPOSITE is mandatory: without it USBD_MAX_SUPPORTED_CLASS is 1
+    # and the Audio and CDC class data would share pClassDataCmsit[0].
+    USE_USBD_COMPOSITE
+    # Classes assembled by the official CompositeBuilder. Only these two are
+    # compiled into the descriptor builder; every other class stays out.
+    USBD_CMPSIT_ACTIVATE_AUDIO=1
+    USBD_CMPSIT_ACTIVATE_CDC=1
+    # The CompositeBuilder emits a USB Speaker (playback) Audio descriptor by
+    # default. This product is a microphone, so select the capture topology:
+    # Microphone input terminal 0x0201 + USB Streaming output terminal 0x0302,
+    # 2 channels. Without it the host configures a playback function around an
+    # isochronous IN endpoint and the device fails to start (Code 10).
+    USBD_AUDIO_CAPTURE_DESC=1
+    # Interface Association Descriptors.
+    # The device descriptor reports bDeviceClass = 0x00 (class defined at the
+    # interface level) and the configuration exposes more than one interface,
+    # so each function (Audio = IF0/IF1, CDC = IF2/IF3) must be grouped by an
+    # IAD or the host cannot bind a driver to the function and the device fails
+    # to start. The CompositeBuilder only emits IADs when this is defined.
+    USBD_COMPOSITE_USE_IAD=1
+    # The stock CDC class defaults (IN 0x81 / CMD 0x82) collide with the Audio
+    # isochronous IN endpoint (0x81). Remap them; these values must stay in
+    # sync with CdcEpAdd[] in USB_DEVICE/App/usb_device.c and the FIFO
+    # allocation in USB_DEVICE/Target/usbd_conf.c.
+    CDC_IN_EP=0x82
+    CDC_OUT_EP=0x01
+    CDC_CMD_EP=0x83
+)
+
 set(USER_COMPILE_DEFINITIONS
     LV_CONF_INCLUDE_SIMPLE
     LV_LVGL_H_INCLUDE_SIMPLE
+    ${USB_COMPOSITE_DEFINITIONS}
 )
 
 set(USER_LINK_LIBRARIES
 )
 
-set(CUSTOM_USB_AUDIO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/Custom/USB_Audio)
-set(CUSTOM_USB_AUDIO_INC ${CUSTOM_USB_AUDIO_DIR}/Inc)
-set(CUSTOM_USB_AUDIO_SRC ${CUSTOM_USB_AUDIO_DIR}/Src/usbd_audio.c)
-set(CUSTOM_USB_DESC_SRC ${CUSTOM_USB_AUDIO_DIR}/Src/usbd_desc.c)
+set(USB_AUDIO_CUSTOM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/Custom/USB_Audio)
+set(USB_AUDIO_CUSTOM_INC ${USB_AUDIO_CUSTOM_DIR}/Inc)
+set(USB_AUDIO_CUSTOM_SRC ${USB_AUDIO_CUSTOM_DIR}/Src/usbd_audio.c)
 
+# ---------------------------------------------------------------------------
+# 官方 USB 设备库：以本仓库自维护的目录树替换 CubeMX 生成的文件列表
+# ---------------------------------------------------------------------------
 if(TARGET USB_Device_Library)
-    get_target_property(_usb_audio_sources USB_Device_Library SOURCES)
-    if(_usb_audio_sources)
-        list(FILTER _usb_audio_sources EXCLUDE REGEX "usbd_audio\\.c$")
-        list(APPEND _usb_audio_sources ${CUSTOM_USB_AUDIO_SRC})
-        set_property(TARGET USB_Device_Library PROPERTY SOURCES ${_usb_audio_sources})
-    endif()
-    target_include_directories(USB_Device_Library BEFORE PRIVATE ${CUSTOM_USB_AUDIO_INC})
+    # 排除官方 AUDIO 类：Audio 由自定义实现提供（避免重复符号与头文件歧义）
+    list(FILTER USB_DEVICE_LIBRARY_SOURCES EXCLUDE REGEX "Class/AUDIO/Src/usbd_audio\\.c$")
+    # 追加本项目自定义 Audio 类
+    list(APPEND USB_DEVICE_LIBRARY_SOURCES ${USB_AUDIO_CUSTOM_SRC})
+
+    set_property(TARGET USB_Device_Library PROPERTY SOURCES ${USB_DEVICE_LIBRARY_SOURCES})
+    target_compile_definitions(USB_Device_Library PRIVATE ${USB_COMPOSITE_DEFINITIONS})
+    target_include_directories(USB_Device_Library PUBLIC ${USB_DEVICE_LIBRARY_INCLUDES})
+    target_include_directories(USB_Device_Library BEFORE PRIVATE ${USB_AUDIO_CUSTOM_INC})
 endif()
 
+# ---------------------------------------------------------------------------
+# 主工程：USB 应用层文件改由本仓库提供（CubeMX 不再生成 usb_device.c 等）
+# ---------------------------------------------------------------------------
 get_target_property(_application_sources ${CMAKE_PROJECT_NAME} SOURCES)
 if(_application_sources)
-    list(FILTER _application_sources EXCLUDE REGEX "USB_DEVICE/App/usbd_desc\\.c$")
-    list(APPEND _application_sources ${CUSTOM_USB_DESC_SRC})
+    list(FILTER _application_sources EXCLUDE REGEX "USB_DEVICE/(App|Target)/usbd_(conf|desc|audio_if)\\.c$")
+    list(FILTER _application_sources EXCLUDE REGEX "USB_DEVICE/App/usb_device\\.c$")
+    list(APPEND _application_sources ${USB_APP_SOURCES})
     set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY SOURCES ${_application_sources})
 endif()
 
-target_include_directories(stm32cubemx BEFORE INTERFACE ${CUSTOM_USB_AUDIO_INC})
-set(USER_INCLUDES ${CUSTOM_USB_AUDIO_INC} ${USER_INCLUDES})
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE ${USB_DEVICE_LIBRARY_INCLUDES})
+target_include_directories(stm32cubemx BEFORE INTERFACE ${USB_AUDIO_CUSTOM_INC})
+
+# ---------------------------------------------------------------------------
+# 从 CubeMX 生成的包含路径中剔除 Class/AUDIO/Inc。
+# MX_Include_Dirs 仍在项目内列出该目录，而其中的 usbd_audio.h 是官方 Speaker
+# (播放方向) 头文件，不含 USBD_AUDIO_GetEpPcktSze 等复合所需声明。若让它遮蔽
+# 自定义头文件，CompositeBuilder 会因找不到该符号而链接失败。
+# 本仓库不使用官方 AUDIO 类，因此直接移除该路径（CubeMX 下次生成 .ioc 时
+# 也会自行去掉；此处保证在过渡期内同样正确）。
+# ---------------------------------------------------------------------------
+if(TARGET stm32cubemx)
+    get_target_property(_cubemx_incs stm32cubemx INTERFACE_INCLUDE_DIRECTORIES)
+    if(_cubemx_incs)
+        set(_cubemx_incs_filtered "")
+        foreach(_inc IN LISTS _cubemx_incs)
+            if(_inc MATCHES "STM32_USB_Device_Library/Class/AUDIO/Inc")
+                message(STATUS "user.cmake: dropping official AUDIO include dir: ${_inc}")
+            else()
+                list(APPEND _cubemx_incs_filtered ${_inc})
+            endif()
+        endforeach()
+        set_property(TARGET stm32cubemx PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${_cubemx_incs_filtered})
+    endif()
+endif()
+set(USER_INCLUDES Middlewares/Custom/USB_Audio/Inc USB_DEVICE/App USB_DEVICE/Target ${USER_INCLUDES})

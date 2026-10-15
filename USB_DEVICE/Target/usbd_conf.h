@@ -63,7 +63,11 @@
   */
 
 /*---------- -----------*/
-#define USBD_MAX_NUM_INTERFACES     1U
+/* Composite device: Audio = 2 interfaces (AudioControl + AudioStreaming),
+   CDC = 2 interfaces (Control + Data) -> 4 interfaces in total. This bound is
+   what the standard GET_STATUS / SET_INTERFACE / GET_INTERFACE requests are
+   validated against. */
+#define USBD_MAX_NUM_INTERFACES     4U
 /*---------- -----------*/
 #define USBD_MAX_NUM_CONFIGURATION     1U
 /*---------- -----------*/

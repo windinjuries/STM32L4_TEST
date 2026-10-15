@@ -1,0 +1,48 @@
+0x0800f9ae in prvIdleTask (pvParameters=0x0) at D:/folder/code/STM32L4_TEST/Middlewares/Third_Party/FreeRTOS/Source/tasks.c:3432
+3432				if( listCURRENT_LIST_LENGTH( &( pxReadyTasksLists[ tskIDLE_PRIORITY ] ) ) > ( UBaseType_t ) 1 )
+Resetting target with halt
+Successfully halted device on reset
+Breakpoint 1 at 0x800bfe8: file D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c, line 249.
+Note: automatically using hardware breakpoints for read-only addresses.
+Breakpoint 2 at 0x800af9e: file D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Class/CompositeBuilder/Src/usbd_composite_builder.c, line 238.
+Breakpoint 3 at 0x80111c4: file D:/folder/code/STM32L4_TEST/Core/Src/main.c, line 922.
+
+=== RUN ===
+[New Thread 536907892]
+[Thread 1 exited]
+[New Thread 536907976]
+[Switching to Thread 536907892]
+
+Thread 2 "defaultTask" hit Breakpoint 1, USBD_RegisterClassComposite (pdev=0x2000cb84 <hUsbDeviceFS>, pclass=0x20000090 <USBD_AUDIO>, classtype=CLASS_TYPE_AUDIO, EpAddr=0x200000d4 <AudioEpAdd> <incomplete sequence \201>) at D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c:249
+249	  USBD_StatusTypeDef ret = USBD_OK;
+
+=== HIT A ===
+#0  USBD_RegisterClassComposite (pdev=0x2000cb84 <hUsbDeviceFS>, pclass=0x20000090 <USBD_AUDIO>, classtype=CLASS_TYPE_AUDIO, EpAddr=0x200000d4 <AudioEpAdd> <incomplete sequence \201>) at D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c:249
+#1  0x080126e2 in MX_USB_DEVICE_Init () at D:/folder/code/STM32L4_TEST/USB_DEVICE/App/usb_device.c:121
+#2  0x0801114c in StartDefaultTask (argument=0x0) at D:/folder/code/STM32L4_TEST/Core/Src/main.c:866
+$1 = CLASS_TYPE_AUDIO
+
+Thread 2 "defaultTask" hit Breakpoint 2, USBD_CMPSIT_AddClass (pdev=0x2000cb84 <hUsbDeviceFS>, pclass=0x20000090 <USBD_AUDIO>, class=CLASS_TYPE_AUDIO, cfgidx=0 '\000') at D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Class/CompositeBuilder/Src/usbd_composite_builder.c:238
+238	  if ((pdev->classId < USBD_MAX_SUPPORTED_CLASS) && (pdev->tclasslist[pdev->classId].Active == 0U))
+
+=== HIT B ===
+#0  USBD_CMPSIT_AddClass (pdev=0x2000cb84 <hUsbDeviceFS>, pclass=0x20000090 <USBD_AUDIO>, class=CLASS_TYPE_AUDIO, cfgidx=0 '\000') at D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Class/CompositeBuilder/Src/usbd_composite_builder.c:238
+#1  0x0800c044 in USBD_RegisterClassComposite (pdev=0x2000cb84 <hUsbDeviceFS>, pclass=0x20000090 <USBD_AUDIO>, classtype=CLASS_TYPE_AUDIO, EpAddr=0x200000d4 <AudioEpAdd> <incomplete sequence \201>) at D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c:263
+#2  0x080126e2 in MX_USB_DEVICE_Init () at D:/folder/code/STM32L4_TEST/USB_DEVICE/App/usb_device.c:121
+$2 = CLASS_TYPE_AUDIO
+
+Thread 2 "defaultTask" hit Breakpoint 1, USBD_RegisterClassComposite (pdev=0x2000cb84 <hUsbDeviceFS>, pclass=0x2000000c <USBD_CDC>, classtype=CLASS_TYPE_CDC, EpAddr=0x200000d0 <CdcEpAdd> "\001‚ƒ") at D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c:249
+249	  USBD_StatusTypeDef ret = USBD_OK;
+
+=== HIT C ===
+#0  USBD_RegisterClassComposite (pdev=0x2000cb84 <hUsbDeviceFS>, pclass=0x2000000c <USBD_CDC>, classtype=CLASS_TYPE_CDC, EpAddr=0x200000d0 <CdcEpAdd> "\001‚ƒ") at D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c:249
+#1  0x0801271c in MX_USB_DEVICE_Init () at D:/folder/code/STM32L4_TEST/USB_DEVICE/App/usb_device.c:142
+#2  0x0801114c in StartDefaultTask (argument=0x0) at D:/folder/code/STM32L4_TEST/Core/Src/main.c:866
+
+Thread 2 "defaultTask" hit Breakpoint 2, USBD_CMPSIT_AddClass (pdev=0x2000cb84 <hUsbDeviceFS>, pclass=0x2000000c <USBD_CDC>, class=CLASS_TYPE_CDC, cfgidx=0 '\000') at D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Class/CompositeBuilder/Src/usbd_composite_builder.c:238
+238	  if ((pdev->classId < USBD_MAX_SUPPORTED_CLASS) && (pdev->tclasslist[pdev->classId].Active == 0U))
+
+=== HIT D ===
+#0  USBD_CMPSIT_AddClass (pdev=0x2000cb84 <hUsbDeviceFS>, pclass=0x2000000c <USBD_CDC>, class=CLASS_TYPE_CDC, cfgidx=0 '\000') at D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Class/CompositeBuilder/Src/usbd_composite_builder.c:238
+#1  0x0800c044 in USBD_RegisterClassComposite (pdev=0x2000cb84 <hUsbDeviceFS>, pclass=0x2000000c <USBD_CDC>, classtype=CLASS_TYPE_CDC, EpAddr=0x200000d0 <CdcEpAdd> "\001‚ƒ") at D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c:263
+#2  0x0801271c in MX_USB_DEVICE_Init () at D:/folder/code/STM32L4_TEST/USB_DEVICE/App/usb_device.c:142

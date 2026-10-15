@@ -75,7 +75,8 @@ DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart3_rx;
 
 osThreadId defaultTaskHandle;
-uint32_t defaultTaskBuffer[ 128 ];
+/* Must match the stack depth in osThreadStaticDef() below. */
+uint32_t defaultTaskBuffer[ 1024 ];
 osStaticThreadDef_t defaultTaskControlBlock;
 /* USER CODE BEGIN PV */
 
@@ -174,7 +175,14 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadStaticDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128, defaultTaskBuffer, &defaultTaskControlBlock);
+  /* Stack raised from 128 to 1024 words: this task runs MX_USB_DEVICE_Init(),
+     whose call chain (USBD_Init -> USBD_LL_Init -> HAL_PCD_Init ->
+     HAL_PCD_MspInit, and USBD_RegisterClassComposite ->
+     USBD_CMPSIT_AddToConfDesc -> USBD_CMPSIT_CDCDesc with its descriptor
+     locals) is far deeper than the CubeMX default of 128 words. A 512 byte
+     stack risked overflowing into the adjacent .bss, corrupting
+     hUsbDeviceFS and leaving the composite device half configured. */
+  osThreadStaticDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 1024, defaultTaskBuffer, &defaultTaskControlBlock);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */

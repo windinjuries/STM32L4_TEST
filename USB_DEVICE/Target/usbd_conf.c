@@ -403,9 +403,30 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   HAL_PCD_RegisterIsoOutIncpltCallback(&hpcd_USB_OTG_FS, PCD_ISOOUTIncompleteCallback);
   HAL_PCD_RegisterIsoInIncpltCallback(&hpcd_USB_OTG_FS, PCD_ISOINIncompleteCallback);
 #endif /* USE_HAL_PCD_REGISTER_CALLBACKS */
-  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_FS, 0x80);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 0, 0x40);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 1, 0x80);
+  /* ------------------------------------------------------------------------
+     USB OTG FS dedicated FIFO allocation.
+     HAL_PCDEx_SetTxFiFo()/SetRxFiFo() take the depth in 32-bit WORDS
+     (the value is written straight into the FIFO depth field; the OTG core
+     requires a minimum of 16 words for every TX FIFO).
+
+       FIFO            words    bytes   used by
+       --------------  -----  -------  ------------------------------------
+       RX               128      512    CDC bulk OUT, control SETUP
+       TX FIFO 0         64      256    EP0 / non-periodic IN
+       TX FIFO 1         64      256    EP1 IN  Audio isochronous (193 B)
+       TX FIFO 2         16       64    EP2 IN  CDC bulk IN
+       TX FIFO 3         16       64    EP3 IN  CDC interrupt IN (8 B)
+       --------------  -----  -------
+       total            288     1152    budget is 320 words (1280 B)
+
+     Keeping the total at or below 320 words matters: exceeding the FIFO RAM
+     corrupts the peripheral configuration.
+     ------------------------------------------------------------------------ */
+  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_FS, 0x80);      /* 128 words = 512 B */
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 0, 0x40);   /*  64 words = 256 B */
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 1, 0x40);   /*  64 words = 256 B */
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 2, 0x10);   /*  16 words =  64 B */
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 3, 0x10);   /*  16 words =  64 B */
   }
   return USBD_OK;
 }
@@ -854,34 +875,66 @@ void USBD_LL_Delay(uint32_t Delay)
 }
 
 /**
-  * @brief  Static single allocation.
-  * @param  size: Size of allocated memory
-  * @retval None
+  * @brief  Static allocation pool for USB class data.
+  *
+  * The CubeMX generated version returned one fixed buffer sized for the single
+  * Audio class and ignored \p size, with a no-op free. That only works while
+  * exactly one class ever allocates.
+  *
+  * This device is a composite of two classes, so both allocate:
+  *   classId 0 : Audio -> USBD_AUDIO_HandleTypeDef  (dominated by the
+  *                       AUDIO_TOTAL_BUF_SIZE = 12288 byte ring buffer)
+  *   classId 1 : CDC   -> USBD_CDC_HandleTypeDef    (544 bytes)
+  *
+  * Handing out the same buffer twice made the CDC init memset the first bytes
+  * of the Audio handle (alt_setting/offset/wr_ptr/rd_ptr/buffer), which faults
+  * during SET_CONFIGURATION.
+  *
+  * The pool below is a simple bump allocator: it is never expected to free
+  * (the stack only calls USBD_free from DeInit, which for this product happens
+  * at most once and is not followed by a re-allocate). A fill counter lets
+  * USBD_static_free rewind, so a DeInit/Init cycle does not exhaust the pool.
   */
+#define USBD_STATIC_POOL_SIZE  (sizeof(USBD_AUDIO_HandleTypeDef) + 640U)
+
+static __ALIGN_BEGIN uint8_t usbd_static_pool[USBD_STATIC_POOL_SIZE] __ALIGN_END;
+static uint32_t usbd_static_used;
+
 void *USBD_static_malloc(uint32_t size)
 {
-  static uint8_t mem[sizeof(USBD_AUDIO_HandleTypeDef)];
-  /* USER CODE BEGIN 4 */
-  /**
-  * To compute the request size you must use the formula:
-    AUDIO_OUT_PACKET = (USBD_AUDIO_FREQ * 2 * 2) /1000)
-    AUDIO_TOTAL_BUF_SIZE = AUDIO_OUT_PACKET * AUDIO_OUT_PACKET_NUM with
-	Number of sub-packets in the audio transfer buffer. You can modify this value but always make sure
-    that it is an even number and higher than 3
-	AUDIO_OUT_PACKET_NUM = 80
-  */
-  /* USER CODE END 4 */
-  return mem;
+  void *ptr;
+
+  /* 8-byte alignment keeps the audio handle 32-bit aligned as documented in
+     usbd_audio.c for DMA-adjacent structures. */
+  size = (size + 7U) & ~7U;
+
+  if ((size == 0U) || ((usbd_static_used + size) > USBD_STATIC_POOL_SIZE))
+  {
+    /* Out of pool: returning NULL makes the class Init report USBD_EMEM
+       instead of corrupting another class's data. */
+    return NULL;
+  }
+
+  ptr = (void *)&usbd_static_pool[usbd_static_used];
+  usbd_static_used += size;
+
+  return ptr;
 }
 
 /**
-  * @brief  Dummy memory free
-  * @param  p: Pointer to allocated  memory address
-  * @retval None
+  * @brief  Release a static allocation.
+  *
+  * The bump allocator cannot free a block in the middle of the pool, and the
+  * only caller is class DeInit, which discards its whole class data as part of
+  * tearing the configuration down. Rewinding the allocation pointer therefore
+  * both keeps free() honest and lets a later Init reuse the pool instead of
+  * exhausting it.
   */
 void USBD_static_free(void *p)
 {
+  UNUSED(p);
 
+  usbd_static_used = 0U;
 }
 
 /* USER CODE BEGIN 5 */

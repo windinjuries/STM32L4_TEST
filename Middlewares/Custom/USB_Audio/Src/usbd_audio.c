@@ -850,7 +850,15 @@ void USBD_AUDIO_GetDiagnostics(USBD_HandleTypeDef *pdev,
   }
 
   (void)memset(diagnostics, 0, sizeof(*diagnostics));
+
+#ifdef USE_USBD_COMPOSITE
+  /* classId indexes the class list, whose bound is USBD_MAX_SUPPORTED_CLASS.
+     Comparing it against USBD_MAX_NUM_INTERFACES (an interface count) would
+     silently skip diagnostics as soon as a second class such as CDC exists. */
+  if (pdev->classId >= USBD_MAX_SUPPORTED_CLASS)
+#else
   if (pdev->classId >= USBD_MAX_NUM_INTERFACES)
+#endif /* USE_USBD_COMPOSITE */
   {
     return;
   }

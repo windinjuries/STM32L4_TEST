@@ -98,16 +98,91 @@ void NMI_Handler(void)
 
 /**
   * @brief This function handles Hard fault interrupt.
+  *
+  * Diagnostic variant: the stock handler only spins, which discards the cause.
+  * The values below are kept as globals so a debugger can read them when the
+  * core is halted here. To see them, add them to the Watch window (or use the
+  * Live Expressions view) while paused in HardFault_Handler.
+  *
+  *   hf_stacked_pc    - address of the instruction that faulted
+  *   hf_stacked_lr    - return address (the caller)
+  *   hf_stacked_psr   - xPSR
+  *   hf_cfsr / hf_hfsr / hf_bfar / hf_mmfar - fault status registers
+  *
+  * Interpretation cheat sheet:
+  *   CFSR.PRECISERR set + BFARVALID set -> invalid data access, BFAR holds the
+  *   offending address. BFARVALID clear -> the access was to an address the bus
+  *   could not report (frequently an unaligned or wild pointer).
+  *   CFSR.IBUSERR -> bad instruction fetch (PC ran off into non-code).
   */
-void HardFault_Handler(void)
-{
-  /* USER CODE BEGIN HardFault_IRQn 0 */
+volatile uint32_t hf_stacked_r0;
+volatile uint32_t hf_stacked_r1;
+volatile uint32_t hf_stacked_r2;
+volatile uint32_t hf_stacked_r3;
+volatile uint32_t hf_stacked_r12;
+volatile uint32_t hf_stacked_lr;
+volatile uint32_t hf_stacked_pc;
+volatile uint32_t hf_stacked_psr;
+volatile uint32_t hf_cfsr;
+volatile uint32_t hf_hfsr;
+volatile uint32_t hf_bfar;
+volatile uint32_t hf_mmfar;
+volatile uint32_t hf_exc_return;
+volatile uint32_t hf_msp;
+volatile uint32_t hf_psp;
 
-  /* USER CODE END HardFault_IRQn 0 */
+/* Defined below; invoked from the naked handler entry. */
+void HardFault_Decode(uint32_t exc_return, uint32_t msp, uint32_t psp);
+
+/* The frame registers can only be trusted if SP is sampled before the
+   compiler emits a prologue, hence the naked entry. */
+__attribute__((naked)) void HardFault_Handler(void)
+{
+  __asm volatile
+  (
+    "mov  r0, lr\n"        /* EXC_RETURN decides which stack holds the frame */
+    "mrs  r1, msp\n"
+    "mrs  r2, psp\n"
+    "b    HardFault_Decode\n"
+  );
+}
+
+void HardFault_Decode(uint32_t exc_return, uint32_t msp, uint32_t psp)
+{
+  uint32_t *frame;
+
+  hf_exc_return = exc_return;
+  hf_msp        = msp;
+  hf_psp        = psp;
+
+  hf_cfsr  = SCB->CFSR;
+  hf_hfsr  = SCB->HFSR;
+  hf_bfar  = SCB->BFAR;
+  hf_mmfar = SCB->MMFAR;
+
+  /* EXC_RETURN bit 2 == 0 selects the Main stack. Falling back to the Main
+     stack when the Process stack pointer is implausible keeps the decode from
+     faulting again inside the fault handler. */
+  if (((exc_return & 0x4U) != 0U) && (psp >= 0x20000000U) && (psp < 0x20020000U))
+  {
+    frame = (uint32_t *)psp;
+  }
+  else
+  {
+    frame = (uint32_t *)msp;
+  }
+
+  hf_stacked_r0  = frame[0];
+  hf_stacked_r1  = frame[1];
+  hf_stacked_r2  = frame[2];
+  hf_stacked_r3  = frame[3];
+  hf_stacked_r12 = frame[4];
+  hf_stacked_lr  = frame[5];
+  hf_stacked_pc  = frame[6];
+  hf_stacked_psr = frame[7];
+
   while (1)
   {
-    /* USER CODE BEGIN W1_HardFault_IRQn 0 */
-    /* USER CODE END W1_HardFault_IRQn 0 */
   }
 }
 

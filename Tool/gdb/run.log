@@ -1,0 +1,2 @@
+D:\folder\code\STM32L4_TEST\Tool\gdb\_auto.gdb:5: Error in sourced command file:
+could not connect (error 138): 系统试图将驱动器合并到合并驱动器上的目录。

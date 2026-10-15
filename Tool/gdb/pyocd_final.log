@@ -1,0 +1,4 @@
+prvCheckTasksWaitingTermination () at D:/folder/code/STM32L4_TEST/Middlewares/Third_Party/FreeRTOS/Source/tasks.c:3650
+3650			while( uxDeletedTasksWaitingCleanUp > ( UBaseType_t ) 0U )
+Resetting target with halt
+Successfully halted device on reset

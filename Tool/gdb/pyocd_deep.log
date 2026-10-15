@@ -1,0 +1,19 @@
+HardFault_Decode (exc_return=0, msp=0, psp=0) at D:/folder/code/STM32L4_TEST/Core/Src/stm32l4xx_it.c:180
+180	  hf_stacked_lr  = frame[5];
+Resetting target with halt
+Successfully halted device on reset
+
+=== break on AddClass + descriptor size ===
+Breakpoint 1 at 0x800af6a: file D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Class/CompositeBuilder/Src/usbd_composite_builder.c, line 238.
+Note: automatically using hardware breakpoints for read-only addresses.
+Breakpoint 2 at 0x800b014: file D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Class/CompositeBuilder/Src/usbd_composite_builder.c, line 267.
+Breakpoint 3 at 0x800b4b6: file D:/folder/code/STM32L4_TEST/Middlewares/ST/STM32_USB_Device_Library/Class/CompositeBuilder/Src/usbd_composite_builder.c, line 910.
+Breakpoint 4 at 0x80110e4: file D:/folder/code/STM32L4_TEST/Core/Src/main.c, line 922.
+
+=== let init run: first AddClass (Audio) ===
+
+Breakpoint 4, Error_Handler () at D:/folder/code/STM32L4_TEST/Core/Src/main.c:922
+922	  __disable_irq();
+D:\folder\code\STM32L4_TEST\Tool\gdb\_pyocd_deep_run.gdb:26: Error in sourced command file:
+No symbol "class" in current context.
+[Inferior 1 (Remote target) detached]
