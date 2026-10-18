@@ -38,17 +38,20 @@ osThreadId netTaskHandle;
 uint32_t netTaskBuffer[ 512 ];
 osStaticThreadDef_t netTaskControlBlock;
 
-const char test_string1[] = "123456";
-char * test_string2 = "123456";
 void app_init()
 {
+    float test_float = 3.14159f;
+    float stored_float = 1.4f * test_float;
+    if(stored_float - 0 < 0.0001f)
+    {
+        return;
+
+    }
 #if (CONFIG_USE_FREEMASTER == 1)
     FMSTR_Init();
 #else
     log_init();
 #endif
-    LOG_DEBUG(test_string1);
-    LOG_DEBUG(test_string2);
     HAL_StatusTypeDef es8388_status = ES8388_Init(&hi2c3);
     if (es8388_status != HAL_OK)
     {

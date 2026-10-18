@@ -97,6 +97,18 @@ extern "C" {
 #define AUDIO_OUTPUT_TERMINAL_DESC_SIZE               0x09U
 #define AUDIO_STREAMING_INTERFACE_DESC_SIZE           0x07U
 
+/* Audio Terminal Types (USB Audio 1.0, Table 2-2 / Table 2-3).
+   The terminal types are what tells the host which way the audio flows:
+     - a USB Streaming INPUT terminal  (0x0101 in an Input Terminal) means the
+       host feeds the device  -> playback function (speaker),
+     - a USB Streaming OUTPUT terminal (0x0101 in an Output Terminal) means the
+       device feeds the host  -> capture function (microphone).
+   A capture function is therefore Microphone Input Terminal -> ... ->
+   USB Streaming Output Terminal, and the AudioStreaming interface links to
+   that Output Terminal. */
+#define AUDIO_TERMINAL_USB_STREAMING                  0x0101U
+#define AUDIO_TERMINAL_MICROPHONE                     0x0201U
+
 #define AUDIO_CONTROL_MUTE                            0x0001U
 
 #define AUDIO_FORMAT_TYPE_I                           0x01U
@@ -244,6 +256,25 @@ typedef struct
   uint16_t          bmaControls;
   uint8_t           iTerminal;
 } __PACKED USBD_SpeakerFeatureDescTypeDef;
+
+/* Table 4-5: Feature Unit Descriptor for a two channel function.
+   A Feature Unit carries bControlSize * (bNrChannels + 1) bytes of
+   bmaControls, so a stereo unit needs 3 bytes (master + one per channel) and
+   a bLength of 7 + 3 = 10. USBD_SpeakerFeatureDescTypeDef only leaves room for
+   the master control word, which makes it inconsistent with bNrChannels = 2:
+   the host reads the missing channel-control bytes past bLength, i.e. out of
+   the following descriptor, and loses the rest of the topology. */
+typedef struct
+{
+  uint8_t           bLength;
+  uint8_t           bDescriptorType;
+  uint8_t           bDescriptorSubtype;
+  uint8_t           bUnitID;
+  uint8_t           bSourceID;
+  uint8_t           bControlSize;
+  uint8_t           bmaControls[3];
+  uint8_t           iTerminal;
+} __PACKED USBD_SpeakerFeature2ChDescTypeDef;
 
 /* Table 4-4: Output Terminal Descriptor */
 typedef struct

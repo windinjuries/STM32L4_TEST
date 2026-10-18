@@ -236,9 +236,11 @@ set(USB_COMPOSITE_DEFINITIONS
     USBD_CMPSIT_ACTIVATE_CDC=1
     # The CompositeBuilder emits a USB Speaker (playback) Audio descriptor by
     # default. This product is a microphone, so select the capture topology:
-    # Microphone input terminal 0x0201 + USB Streaming output terminal 0x0302,
-    # 2 channels. Without it the host configures a playback function around an
-    # isochronous IN endpoint and the device fails to start (Code 10).
+    # Microphone input terminal 0x0201 -> Feature Unit -> USB Streaming output
+    # terminal 0x0101 (2 channels). The AudioStreaming interface must point at
+    # that output terminal through bTerminalLink; without the capture topology
+    # the host builds a playback function around an isochronous IN endpoint and
+    # the device fails to start (Code 10).
     USBD_AUDIO_CAPTURE_DESC=1
     # Interface Association Descriptors.
     # The device descriptor reports bDeviceClass = 0x00 (class defined at the

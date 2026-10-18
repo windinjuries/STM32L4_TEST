@@ -1130,12 +1130,12 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
 {
   static USBD_IfDescTypeDef *pIfDesc;
   static USBD_IadDescTypeDef *pIadDesc;
+  uint8_t audioTerminalLink;
   UNUSED(speed);
 
   /* Append AUDIO Interface descriptor to Configuration descriptor */
   USBD_SpeakerIfDescTypeDef            *pSpIfDesc;
   USBD_SpeakerInDescTypeDef            *pSpInDesc;
-  USBD_SpeakerFeatureDescTypeDef       *pSpFDesc;
   USBD_SpeakerOutDescTypeDef           *pSpOutDesc;
   USBD_SpeakerStreamIfDescTypeDef      *pSpStrDesc;
   USBD_SpeakerIIIFormatIfDescTypeDef   *pSpIIIDesc;
@@ -1159,6 +1159,103 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
   __USBD_CMPSIT_SET_IF(pdev->tclasslist[pdev->classId].Ifs[0], 0U, 0U, USB_DEVICE_CLASS_AUDIO, \
                        AUDIO_SUBCLASS_AUDIOCONTROL, AUDIO_PROTOCOL_UNDEFINED, 0U);
 
+  /* -------------------------------------------------------------------------
+   * Audio Control interface and its class-specific descriptors.
+   *
+   * USBD_AUDIO_CAPTURE_DESC selects the microphone (capture) function this
+   * product implements:
+   *
+   *     Input Terminal 1  (0x0201 Microphone)          audio source
+   *          -> Feature Unit 2 (mute)
+   *          -> Output Terminal 3 (0x0101 USB Streaming) feeds the host
+   *          -> AS interface alt 1, isochronous IN endpoint
+   *
+   * The host resolves the stream behind an AudioStreaming interface through
+   * bTerminalLink, which must name the USB Streaming OUTPUT terminal, and that
+   * terminal must carry wTerminalType 0x0101. When the link or the terminal
+   * type is wrong the driver cannot resolve the topology and Windows reports
+   * "This device cannot start. (Code 10) - The object was not found" for the
+   * audio function while the other functions keep working.
+   *
+   * The stock ST descriptor is the playback (speaker) variant: Input Terminal
+   * 0x0101, Output Terminal 0x0301 and bTerminalLink = 1, with a one channel
+   * Feature Unit. It cannot be turned into a microphone by patching a couple
+   * of fields, hence the separate implementation below.
+   * ---------------------------------------------------------------------- */
+#if defined(USBD_AUDIO_CAPTURE_DESC)
+  {
+    uint32_t acHeaderOffset;
+
+    /* Class-specific AC Interface header. wTotalLength is filled in once the
+       whole AC block has been emitted, so it can never drift from the real
+       descriptor sizes. */
+    acHeaderOffset = *Sze;
+    pSpIfDesc = ((USBD_SpeakerIfDescTypeDef *)(pConf + *Sze));
+    pSpIfDesc->bLength = (uint8_t)sizeof(USBD_SpeakerIfDescTypeDef);
+    pSpIfDesc->bDescriptorType = AUDIO_INTERFACE_DESCRIPTOR_TYPE;
+    pSpIfDesc->bDescriptorSubtype = AUDIO_CONTROL_HEADER;
+    pSpIfDesc->bcdADC = 0x0100U;
+    pSpIfDesc->wTotalLength = 0x0000U;   /* patched below */
+    pSpIfDesc->bInCollection = 0x01U;
+    /* The AudioStreaming interface of this very function. Hardcoding 0x01
+       would silently point at another function's interface if the classes
+       were registered in a different order. */
+    pSpIfDesc->baInterfaceNr = pdev->tclasslist[pdev->classId].Ifs[1];
+    *Sze += (uint32_t)sizeof(USBD_SpeakerIfDescTypeDef);
+
+    /* Input Terminal: microphone. bNrChannels must match the Type I format
+       descriptor (2 channels, 16 bit) further down. */
+    pSpInDesc = ((USBD_SpeakerInDescTypeDef *)(pConf + *Sze));
+    pSpInDesc->bLength = (uint8_t)sizeof(USBD_SpeakerInDescTypeDef);
+    pSpInDesc->bDescriptorType = AUDIO_INTERFACE_DESCRIPTOR_TYPE;
+    pSpInDesc->bDescriptorSubtype = AUDIO_CONTROL_INPUT_TERMINAL;
+    pSpInDesc->bTerminalID = 0x01U;
+    pSpInDesc->wTerminalType = AUDIO_TERMINAL_MICROPHONE;
+    pSpInDesc->bAssocTerminal = 0x00U;
+    pSpInDesc->bNrChannels = 0x02U;
+    pSpInDesc->wChannelConfig = 0x0003U;   /* front left + front right */
+    pSpInDesc->iChannelNames = 0x00U;
+    pSpInDesc->iTerminal = 0x00U;
+    *Sze += (uint32_t)sizeof(USBD_SpeakerInDescTypeDef);
+
+    /* Feature Unit: mute control on the master channel, one control byte per
+       channel present but unused. 10 bytes, i.e. 3 bmaControls bytes. */
+    {
+      USBD_SpeakerFeature2ChDescTypeDef *pFUnit =
+        ((USBD_SpeakerFeature2ChDescTypeDef *)(pConf + *Sze));
+
+      pFUnit->bLength = (uint8_t)sizeof(USBD_SpeakerFeature2ChDescTypeDef);
+      pFUnit->bDescriptorType = AUDIO_INTERFACE_DESCRIPTOR_TYPE;
+      pFUnit->bDescriptorSubtype = AUDIO_CONTROL_FEATURE_UNIT;
+      pFUnit->bUnitID = (uint8_t)AUDIO_OUT_STREAMING_CTRL;
+      pFUnit->bSourceID = 0x01U;
+      pFUnit->bControlSize = 0x01U;
+      pFUnit->bmaControls[0] = (uint8_t)AUDIO_CONTROL_MUTE;
+      pFUnit->bmaControls[1] = 0x00U;
+      pFUnit->bmaControls[2] = 0x00U;
+      pFUnit->iTerminal = 0x00U;
+      *Sze += (uint32_t)sizeof(USBD_SpeakerFeature2ChDescTypeDef);
+    }
+
+    /* Output Terminal: USB Streaming. This is the terminal the AS interface
+       links to; its type is what makes the function a microphone. */
+    pSpOutDesc = ((USBD_SpeakerOutDescTypeDef *)(pConf + *Sze));
+    pSpOutDesc->bLength = (uint8_t)sizeof(USBD_SpeakerOutDescTypeDef);
+    pSpOutDesc->bDescriptorType = AUDIO_INTERFACE_DESCRIPTOR_TYPE;
+    pSpOutDesc->bDescriptorSubtype = AUDIO_CONTROL_OUTPUT_TERMINAL;
+    pSpOutDesc->bTerminalID = 0x03U;
+    pSpOutDesc->wTerminalType = AUDIO_TERMINAL_USB_STREAMING;
+    pSpOutDesc->bAssocTerminal = 0x00U;
+    pSpOutDesc->bSourceID = 0x02U;
+    pSpOutDesc->iTerminal = 0x00U;
+    *Sze += (uint32_t)sizeof(USBD_SpeakerOutDescTypeDef);
+
+    /* wTotalLength counts every class-specific AC descriptor, header included */
+    pSpIfDesc->wTotalLength = (uint16_t)(*Sze - acHeaderOffset);
+  }
+
+  audioTerminalLink = 0x03U;   /* Output Terminal above */
+#else
   /* Append AUDIO USB Speaker Class-specific AC Interface descriptor to Configuration descriptor */
   pSpIfDesc = ((USBD_SpeakerIfDescTypeDef *)(pConf + *Sze));
   pSpIfDesc->bLength = (uint8_t)sizeof(USBD_IfDescTypeDef);
@@ -1167,7 +1264,7 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
   pSpIfDesc->bcdADC = 0x0100U;
   pSpIfDesc->wTotalLength = 0x0027U;
   pSpIfDesc->bInCollection = 0x01U;
-  pSpIfDesc->baInterfaceNr = 0x01U;
+  pSpIfDesc->baInterfaceNr = pdev->tclasslist[pdev->classId].Ifs[1];
   *Sze += (uint32_t)sizeof(USBD_IfDescTypeDef);
 
   /* Append USB Speaker Input Terminal Descriptor to Configuration descriptor*/
@@ -1185,16 +1282,20 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
   *Sze += (uint32_t)sizeof(USBD_SpeakerInDescTypeDef);
 
   /*Append USB Speaker Audio Feature Unit Descriptor to Configuration descriptor */
-  pSpFDesc = ((USBD_SpeakerFeatureDescTypeDef *)(pConf + *Sze));
-  pSpFDesc->bLength = (uint8_t)sizeof(USBD_SpeakerFeatureDescTypeDef);
-  pSpFDesc->bDescriptorType = AUDIO_INTERFACE_DESCRIPTOR_TYPE;
-  pSpFDesc->bDescriptorSubtype = AUDIO_CONTROL_FEATURE_UNIT;
-  pSpFDesc->bUnitID = AUDIO_OUT_STREAMING_CTRL;
-  pSpFDesc->bSourceID = 0x01U;
-  pSpFDesc->bControlSize = 0x01U;
-  pSpFDesc->bmaControls = AUDIO_CONTROL_MUTE;
-  pSpFDesc->iTerminal = 0x00U;
-  *Sze += (uint32_t)sizeof(USBD_SpeakerFeatureDescTypeDef);
+  {
+    USBD_SpeakerFeatureDescTypeDef *pSpFDesc =
+      ((USBD_SpeakerFeatureDescTypeDef *)(pConf + *Sze));
+
+    pSpFDesc->bLength = (uint8_t)sizeof(USBD_SpeakerFeatureDescTypeDef);
+    pSpFDesc->bDescriptorType = AUDIO_INTERFACE_DESCRIPTOR_TYPE;
+    pSpFDesc->bDescriptorSubtype = AUDIO_CONTROL_FEATURE_UNIT;
+    pSpFDesc->bUnitID = (uint8_t)AUDIO_OUT_STREAMING_CTRL;
+    pSpFDesc->bSourceID = 0x01U;
+    pSpFDesc->bControlSize = 0x01U;
+    pSpFDesc->bmaControls = AUDIO_CONTROL_MUTE;
+    pSpFDesc->iTerminal = 0x00U;
+    *Sze += (uint32_t)sizeof(USBD_SpeakerFeatureDescTypeDef);
+  }
 
   /*Append USB Speaker Output Terminal Descriptor to Configuration descriptor*/
   pSpOutDesc = ((USBD_SpeakerOutDescTypeDef *)(pConf + *Sze));
@@ -1207,6 +1308,9 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
   pSpOutDesc->bSourceID = 0x02U;
   pSpOutDesc->iTerminal = 0x00U;
   *Sze += (uint32_t)sizeof(USBD_SpeakerOutDescTypeDef);
+
+  audioTerminalLink = 0x01U;   /* Input Terminal above */
+#endif /* USBD_AUDIO_CAPTURE_DESC */
 
   /* USB Speaker Standard AS Interface Descriptor - Audio Streaming Zero Bandwidth */
   /* Interface 1, Alternate Setting 0*/
@@ -1223,7 +1327,7 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
   pSpStrDesc->bLength = (uint8_t)sizeof(USBD_SpeakerStreamIfDescTypeDef);
   pSpStrDesc->bDescriptorType = AUDIO_INTERFACE_DESCRIPTOR_TYPE;
   pSpStrDesc->bDescriptorSubtype = AUDIO_STREAMING_GENERAL;
-  pSpStrDesc->bTerminalLink = 0x01U;
+  pSpStrDesc->bTerminalLink = audioTerminalLink;
   pSpStrDesc->bDelay = 0x01U;
   pSpStrDesc->wFormatTag = 0x0001U;
   *Sze += (uint32_t)sizeof(USBD_SpeakerStreamIfDescTypeDef);
@@ -1264,33 +1368,6 @@ static void  USBD_CMPSIT_AUDIODesc(USBD_HandleTypeDef *pdev, uint32_t pConf, __I
   pSpEpStDesc->bLockDelayUnits = 0x00U;
   pSpEpStDesc->wLockDelay = 0x0000U;
   *Sze += (uint32_t)sizeof(USBD_SpeakerEndStDescTypeDef);
-
-#if defined(USBD_AUDIO_CAPTURE_DESC)
-  /* -------------------------------------------------------------------------
-   * Microphone (capture) variant of the Audio descriptor, enabled by defining
-   * USBD_AUDIO_CAPTURE_DESC (see user.cmake).
-   *
-   * The block above is hardcoded for a USB Speaker (playback) function:
-   *   Input Terminal  = 0x0101 USB Streaming (host -> device)
-   *   Output Terminal = 0x0301 Speaker
-   *   bNrChannels     = 1
-   * A UAC1 microphone needs the opposite topology, otherwise the host builds a
-   * playback function around an isochronous IN endpoint and the device fails
-   * to start (Windows reports Code 10):
-   *   Input Terminal  = 0x0201 Microphone
-   *   Output Terminal = 0x0302 USB Streaming
-   *   bNrChannels     = 2 (must match the Type I format descriptor)
-   *
-   * Only field values are rewritten, never the lengths, so the total
-   * configuration descriptor size is identical to the playback variant.
-   * ASD (bTerminalLink = 0x01) resolves to the Microphone Input Terminal,
-   * which is the correct link for a capture function.
-   * ------------------------------------------------------------------------- */
-  pSpInDesc->wTerminalType = 0x0201U;   /* AUDIO_TERMINAL_MICROPHONE   */
-  pSpInDesc->bNrChannels   = 0x02U;     /* stereo, matches the format  */
-  pSpInDesc->wChannelConfig = 0x0003U;  /* left + right                */
-  pSpOutDesc->wTerminalType = 0x0302U;  /* AUDIO_TERMINAL_STREAMING    */
-#endif /* USBD_AUDIO_CAPTURE_DESC */
 
   /* Update Config Descriptor and IAD descriptor */
   ((USBD_ConfigDescTypeDef *)pConf)->bNumInterfaces += 2U;

@@ -18,7 +18,8 @@
 ### 目录职责
 
 ```
-Middlewares/ST/STM32_USB_Device_Library/   官方 ST USB 库（零修改，含 CompositeBuilder）
+Middlewares/ST/STM32_USB_Device_Library/   官方 ST USB 库（仅 CompositeBuilder 的
+                                           Audio 描述符按本产品改造，见第 9 节）
 Middlewares/Custom/USB_Audio/              自定义 ES8388 麦克风 Audio 类（本仓库维护）
 USB_DEVICE/                                USB 应用层与底层驱动（本仓库维护）
 cmake/stm32cubemx/CMakeLists.txt           CubeMX 生成，勿手改
@@ -106,7 +107,8 @@ python Tool\build.py
 
 | 报错 / 现象 | 真实原因 | 修法 |
 |---|---|---|
-| 枚举成 **USB Composite Device** 但"**该设备无法启动 (代码 10)**" | **官方 CompositeBuilder 的 Audio 描述符是播放（喇叭）拓扑**：Input Terminal `0x0101`(USB Streaming)、Output Terminal `0x0301`(Speaker)、`bNrChannels=1`。而本产品是录音，描述符与等时 **IN** 端点方向矛盾，主机按播放设备配置后启动失败 | 定义 `USBD_AUDIO_CAPTURE_DESC`，在构建器内把字段覆盖为麦克风拓扑（`0x0201` / `0x0302` / 双声道）。只覆盖字段值、不改长度，因此 `wTotalLength` 与播放变体完全一致 |
+| 枚举成 **USB Composite Device** 但"**该设备无法启动 (代码 10)**" | **官方 CompositeBuilder 的 Audio 描述符是播放（喇叭）拓扑**：Input Terminal `0x0101`(USB Streaming)、Output Terminal `0x0301`(Speaker)、`bNrChannels=1`。而本产品是录音，描述符与等时 **IN** 端点方向矛盾，主机按播放设备配置后启动失败 | 定义 `USBD_AUDIO_CAPTURE_DESC`，改由构建器输出完整的麦克风拓扑（见第 9 节）。**只改字段值是不够的**（早期版本把 Output Terminal 改成 `0x0302`、`bTerminalLink` 仍指输入终端，仍报代码 10） |
+| 设备管理器显示 **STM32 microphone**，音频功能"**该设备无法启动 (代码 10)** / **无法找到对象**"，同时 VCP 正常 | **音频拓扑无法被主机解析**。`bTerminalLink` 指向的是 Microphone **输入**终端（`bTerminalLink=1`）、输出终端类型为 `0x0302`（Headphones，不是 USB Streaming `0x0101`），且 Feature Unit 的 `bLength=9` 与 `bNrChannels=2` 不匹配（2 声道需要 3 个 bmaControls 字节 = `bLength` 10）。主机找不到"USB 流"终端后返回 `STATUS_OBJECT_NAME_NOT_FOUND`，Windows 就显示为"代码 10 + 无法找到对象" | 按第 9 节的拓扑重建 AC 描述符：IT `0x0201` → FU（`bLength=10`，3 个控制字节）→ OT `0x0101`，`bTerminalLink=3`，`wTotalLength` 由构建器按实际长度计算（`0x28`） |
 | 上板枚举时 **HardFault**，位置 `usbd_audio.c:413`（`pUserData[classId]->Init()`） | **`RegisterInterface` 注册到错误槽位**：`USBD_RegisterClassComposite()` 内部经 `USBD_CMPSIT_AddClass()` 已经把 `pdev->classId` 自增，于是随后调用的 `USBD_AUDIO_RegisterInterface()` 把 fops 写进了 `pUserData[1]` 而不是 `[0]`，`pUserData[0]` 保持 NULL。类指针 `pClass[]` 与 `pUserData[]` 因此整体错位一格（`pClass[1]=USBD_AUDIO` 但 `pUserData[1]=audio fops`） | 注册前用 `USBD_CMPSIT_GetClassID(pdev, CLASS_TYPE_x, 0)` 取出真实索引并赋给 `pdev->classId`（见 `usb_device.c`） |
 | 上板枚举时 **HardFault**，位置同上 | `USBD_static_malloc()` 是 CubeMX 的单类版本：**忽略 `size`、永远返回同一块缓冲**，`USBD_static_free()` 为空。两个类各自 `USBD_malloc()` 时拿到**同一地址**，后初始化的 CDC 用 `memset` 把 Audio 句柄开头清零 | 改为**顺序分配（bump allocator）**，池大小 `sizeof(USBD_AUDIO_HandleTypeDef) + 640`，并在 `USBD_static_free()` 中回退指针。**新增任何 USB 类都必须重新核对此池容量** |
 | 8 个类报 `usbd_xxx.h: No such file or directory`（BillBoard/CCID/CDC_ECM/CDC_RNDIS/DFU/CustomHID/HID/MSC） | 源文件通配用了 `Class/*/Src/*.c` 把所有类都收进来，但只添加了 Core/CompositeBuilder/CDC 的包含路径 | 只收集实际编译的模块（见 `user.cmake` 的 `USB_DEVICE_LIBRARY_SOURCES`）。**追加新类时必须同时补 `Src` 与 `Inc` 两处** |
@@ -186,3 +188,96 @@ USB 的 GPIO（PA11/PA12）、时钟、NVIC 均由 `usbd_conf.c` 的 `HAL_PCD_Ms
 3. **`USBD_AUDIO_Sync()` 的 `wr_ptr` 半/满语义**：自定义 Audio 类中 DMA 半传输
    /全传输回调与读指针的水位语义存在颠倒，同样属于既有音频链路问题，建议在
    复合设备跑通后单独修正。
+4. **等时 IN 端点的同步类型声明**：描述符里 `bmAttributes = 0x01`，即
+   "Isochronous / 无同步"，而实际采样时钟来自 ES8388 ADC（自由运行）并由
+   `packet_accum` 做 192/193 字节的速率补偿，语义上属于**异步源**
+   （`0x05`）。Windows 对麦克风一般期望 `0x05`；若后续出现"能枚举但打不开
+   录音流""采样率偏移"之类问题，先把这一字节改成 `0x05` 再验证。
+
+---
+
+## 9. 音频（UAC1 麦克风）描述符拓扑
+
+这是"该设备无法启动（代码 10）/ 无法找到对象"的唯一已知成因，改动此段前请先读完。
+
+### 9.1 正确的麦克风拓扑
+
+UAC1 里**数据流方向由终端类型表达**，而不是由端点方向表达：
+
+| 角色 | 终端类型 | 含义 |
+|---|---|---|
+| 麦克风（声音来源） | Input Terminal `wTerminalType = 0x0201` | 声音从"外部"进入功能 |
+| USB 主机（声音去向） | Output Terminal `wTerminalType = 0x0101` | 数据流到 USB |
+
+所以麦克风功能是 `IT(0x0201) → FU → OT(0x0101)`，**AudioStreaming 接口的
+`bTerminalLink` 必须指向那个 `0x0101` 输出终端**；扬声器功能则相反，是
+`IT(0x0101) → FU → OT(0x0301 Speaker)`，`bTerminalLink` 指向输入终端。
+
+主机解析时先按 `bTerminalLink` 找终端，再顺着每个单元的 `bSourceID` 往回走。
+只要有一个 ID 解析不到，Windows 就会返回 `STATUS_OBJECT_NAME_NOT_FOUND`，
+在设备管理器里显示为"**该设备无法启动。(代码 10)** + **无法找到对象**"——
+**同一块板子上的其它功能（VCP）仍然完全正常**，这正是本项目的现象。
+
+### 9.2 本工程实际输出的 AC 段（`USBD_AUDIO_CAPTURE_DESC=1`）
+
+```
+09 24 01 00 01 28 00 01 01              AC Header, wTotalLength=0x28(40), 1 AS 接口(IF1)
+0C 24 02 01 01 02 00 02 03 00 00 00     Input Terminal id=1, type=0x0201, 2ch, L/R
+0A 24 06 02 01 01 01 00 00 00           Feature Unit id=2, src=1, ctlSize=1, 3 个控制字节
+09 24 03 03 01 01 00 02 00              Output Terminal id=3, type=0x0101, src=2
+07 24 01 03 01 01 00                    AS General, bTerminalLink=3, bDelay=1, PCM
+0B 24 02 01 02 02 10 01 80 BB 00        Format Type I, 2ch/16bit/48000
+```
+
+要点（每一条都曾经写错过）：
+
+1. `bTerminalLink = 3`（输出终端），不是 `1`；
+2. 输出终端类型 `0x0101`（USB Streaming），**不是** `0x0302`（Headphones）；
+3. Feature Unit 的 `bLength = 7 + bControlSize × (bNrChannels + 1) = 10`，
+   2 声道必须给 3 个 `bmaControls` 字节，否则主机按 `bNrChannels` 读控制字节时
+   会越界读进下一条描述符，拓扑随之断裂；
+4. AC Header 的 `wTotalLength` 必须等于 AC 段实际长度。构建器现在**按已写出的
+   字节数计算**（不再写死 `0x0027`），`baInterfaceNr` 也取自
+   `tclasslist[classId].Ifs[1]`（不再写死 `1`），这样即使以后调整类的注册顺序
+   也不会指错接口。
+
+### 9.3 上板核对描述符
+
+1. 用 USBTreeView / USB Device Tree Viewer 抓配置描述符，或
+2. 用 GDB 从运行中的固件 dump 出来：
+
+```
+arm-none-eabi-gdb build/Debug/TEST.elf
+(gdb) break MX_USB_DEVICE_Init
+(gdb) run
+(gdb) finish                                  # 让描述符构建完成
+(gdb) dump binary memory cfg.bin pCmpstFSConfDesc pCmpstFSConfDesc+184   # 184 = wTotalLength
+```
+
+3. 交给本仓库的解码器判断结构是否合法、拓扑是否可解析：
+
+```powershell
+python Tool\decode_cfgdesc.py cfg.bin
+```
+
+输出中应出现：
+
+```
+audio topology: AS links to OUTPUT terminal 3, type 0x0101 (USB Streaming) -> CAPTURE
+no structural problems found
+```
+
+### 9.4 若仍然报代码 10
+
+按以下顺序排除（都与描述符无关了）：
+
+1. **Windows 缓存了旧描述符**：设备管理器里卸载该设备（勾选"删除驱动程序"），
+   或改 `USBD_PID_FS` 后再插；USBTreeView 里核对 `idProduct` 是否已变。
+2. **`bMaxPower` 超过端口可提供电流**（当前 `USBD_SELF_POWERED=1` + `USBD_MAX_POWER`），
+   自供电标志与实际供电方式不符会让音频功能启动失败。
+3. **等时端点带宽**：48 kHz × 2ch × 2B = 192 B/帧，端点为 193 B/帧，
+   TX FIFO 1 已给 256 B；若 FIFO 分配被改动过需重新核对（见第 3 节）。
+4. 若要临时验证"是否 Feature Unit 引起"，可删掉 FU 段并把 AC 段长度改成
+   `0x1E`（`IT → OT` 直连，`OT.bSourceID = 1`）——这是 UAC1 规范附录 B 的
+   最简麦克风拓扑，可用来二分定位。
+
