@@ -125,7 +125,7 @@ CMake 安装于 STM32Cube 工具链中，不在 PATH 中，需要使用绝对路
 
 | 任务 | 栈大小 | 优先级 | 功能 |
 |------|--------|--------|------|
-| `defaultTask` | 128 words | Normal | USB CDC 初始化 + FreeMaster 轮询 + LED 闪烁 |
+| `defaultTask` | 1024 words | Normal | USB 复合设备初始化 + USB 音频诊断上报 + FreeMaster 轮询 + LED 闪烁 |
 | `tc214bTask` | 256 words | Normal | 直流电机控制（TC214B） |
 | `lvglTask` | 2048 words | Normal | LVGL GUI：每 30ms 调用 `lv_timer_handler()` |
 | `wifiTask` | 512 words | Normal | ESP8266 WiFi 操作 |
@@ -137,7 +137,7 @@ LVGL 时基由 TIM3 周期回调中调用 `lv_tick_inc(1)` 驱动。
 
 - **LVGL v8.3.11** — GUI 库。配置文件：`Middlewares/Third_Party/LVGL/port/lv_conf.h`（RGB565，16 位色彩交换开启）。显示驱动（`lv_port_disp.c`）使用 SPI3。输入设备（`lv_port_indev.c`）处理 4 按键键盘。应用层在 `Middlewares/Third_Party/LVGL/app/`
 - **FreeMaster** — NXP 实时调试监控器。使用 USART1（串口协议）。配置文件：`Middlewares/Third_Party/FreeMaster/src/port/freemaster_cfg.h`。在 `defaultTask` 中轮询
-- **USB CDC** — STM32 USB Device Library，虚拟串口
+- **USB 复合设备（Audio 麦克风 + CDC 虚拟串口）** — 官方 ST USB Device Library Core + CompositeBuilder，Audio 类为本仓库自维护（`Middlewares/Custom/USB_Audio/`）。USB 已从 `TEST.ioc` 移除，相关代码由仓库自行维护（`USB_DEVICE/`）。学习路线见 [`docs/USB_学习路线.md`](docs/USB_学习路线.md)，改造细节见 [`docs/usb_composite_vcp.md`](docs/usb_composite_vcp.md)
 
 ### 应用层（`APP/`）
 
